@@ -1,0 +1,833 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(to bottom, #87CEEB 0%, #4682B4 50%, #2F4F4F 100%);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: linear-gradient(180deg, rgba(0,0,0,0.75), rgba(0,0,0,0.6));
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+}
+
+.header h1 {
+    font-size: 24px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.score-board {
+    display: flex;
+    gap: 30px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.score-board > div {
+    background: rgba(255,255,255,0.12);
+    padding: 6px 12px;
+    border-radius: 9999px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.best-score span {
+    color: #FFD700;
+}
+.ui-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.icon-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: transform 0.1s ease, background 0.2s ease;
+}
+
+.icon-btn:active { transform: scale(0.96); }
+.icon-btn:hover { background: rgba(255,255,255,0.25); }
+
+.icon-btn.active {
+    background: rgba(50,205,50,0.4);
+    box-shadow: 0 0 0 2px rgba(50,205,50,0.9) inset, 0 2px 6px rgba(0,0,0,0.35);
+}
+
+
+.score-board span {
+    color: #90EE90;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.score-bounce {
+    animation: scoreBounce 400ms ease-out;
+}
+
+@keyframes scoreBounce {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+}
+
+.coins span { color: #FFD700; }
+
+.game-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: linear-gradient(to bottom, 
+        #FFD700 0%,     /* Zlatá obloha na východu/západu */
+        #87CEEB 10%,    /* Světle modrá obloha */
+        #4682B4 20%,    /* Modrá obloha */
+        #20B2AA 30%,    /* Světlá voda */
+        #1E90FF 50%,    /* Modrá voda */
+        #4169E1 70%,    /* Hlubší voda */
+        #0000CD 100%);  /* Velmi hluboká voda */
+    cursor: crosshair;
+}
+
+.fisherman {
+    position: absolute;
+    top: 15%; /* Pozice odpovídající novému břehu */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 80px;
+    background: linear-gradient(to bottom, #228B22 0%, #006400 100%); /* Zelená košile */
+    border-radius: 30px 30px 10px 10px;
+    z-index: 5;
+    transition: left 0.1s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* Hlava rybáře */
+.fisherman::before {
+    content: "";
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 35px;
+    height: 35px;
+    background: #FDBCB4;
+    border-radius: 50%;
+    border: 3px solid #8B4513; /* Klobouk */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Klobouk detaily */
+.fisherman::after {
+    content: "";
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 45px;
+    height: 8px;
+    background: #654321;
+    border-radius: 50px;
+    box-shadow: 0 -3px 0 #8B4513;
+}
+
+/* Ruce rybáře */
+.fisherman .arms {
+    position: absolute;
+    top: 15px;
+    left: -10px;
+    width: 80px;
+    height: 4px;
+    background: #FDBCB4;
+    border-radius: 2px;
+    transform: rotate(-10deg);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+}
+
+/* Animace házení prutu */
+.fisherman.casting .arms {
+    transform: rotate(-25deg);
+}
+
+.fisherman.casting .rod {
+    transform: rotate(20deg);
+}
+
+/* Nohy rybáře */
+.fisherman .legs {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 20px;
+    background: #654321; /* Hnědé kalhoty */
+    border-radius: 0 0 25px 25px;
+}
+
+.rod {
+    position: absolute;
+    top: 35px; /* Relativní k rybáři, zůstává stejné */
+    left: 50%;
+    width: 5px;
+    height: 120px;
+    background: var(--rod-gradient, linear-gradient(to bottom, 
+        #8B4513 0%,
+        #A0522D 30%,
+        #D2691E 100%));
+    transform-origin: top center;
+    transition: transform 0.1s ease;
+    border-radius: 2px;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.3);
+}
+
+.line {
+    position: absolute;
+    top: calc(25% + 105px); /* Rybář na 25% + offset pro prutu (35px + 70px) */
+    left: 50%;
+    width: 2px;
+    background: linear-gradient(to bottom, 
+        rgba(139, 69, 19, 0.8) 0%,
+        rgba(139, 69, 19, 0.6) 50%,
+        rgba(139, 69, 19, 0.4) 100%);
+    transform-origin: top center;
+    transition: all 0.3s ease;
+    border-radius: 1px;
+}
+
+.hook {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle, #E6E6FA 0%, #C0C0C0 70%, #808080 100%);
+    border-radius: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    border: 2px solid #808080;
+}
+
+.controls {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.info-panel {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.6);
+    max-width: 300px;
+    z-index: 10;
+}
+
+.info-panel h3 {
+    color: #2F4F4F;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #4682B4;
+    padding-bottom: 5px;
+}
+
+/* Panel misí (piktogramy) */
+.missions-panel {
+    position: fixed;
+    top: 70px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    max-width: 280px;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 1fr 80px;
+    gap: 8px;
+}
+
+.mission-card {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+    font-size: 18px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+/* Kruhový timer pro mise */
+.mission-timer {
+    position: relative;
+    width: 64px;
+    height: 64px;
+}
+
+.mission-timer svg {
+    transform: rotate(-90deg);
+}
+
+.mission-timer .timer-bg { stroke: #eee; }
+.mission-timer .timer-fg { stroke: #32CD32; transition: stroke-dashoffset 0.2s linear; }
+.mission-timer .timer-text { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; font-weight: 700; }
+
+.mission-progress {
+    height: 6px;
+    background: #e5e5e5;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.mission-progress > div {
+    height: 100%;
+    background: linear-gradient(90deg, #90EE90, #32CD32);
+    width: 0;
+}
+
+/* Minihra zdolávání ryby */
+.reel-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.4);
+    z-index: 1001;
+}
+
+.reel-overlay.show { display: flex; }
+
+.reel-content {
+    background: rgba(255,255,255,0.95);
+    padding: 18px 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.reel-emoji { font-size: 36px; }
+
+.reel-bar {
+    position: relative;
+    width: min(380px, 80vw);
+    height: 18px;
+    background: #e9e9e9;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.reel-progress {
+    position: relative;
+    z-index: 1;
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #FFD700, #FF8C00);
+}
+
+.reel-goal {
+    position: absolute;
+    width: 40%;
+    height: 100%;
+    left: 60%;
+    top: 0;
+    background: rgba(50,205,50,0.25);
+    border-left: 2px solid rgba(50,205,50,0.6);
+    border-right: 2px solid rgba(50,205,50,0.6);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.reel-hint { font-size: 22px; }
+
+#lastCatch img {
+    max-width: 200px;
+    height: auto;
+    border-radius: 5px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.fish-info {
+    font-size: 14px;
+    color: #333;
+}
+
+.fish-info strong {
+    color: #2F4F4F;
+}
+
+/* Dětsky srozumitelné info: hvězdičky vzácnosti a velké body */
+.rarity-stars {
+    font-size: 22px;
+    color: #FFD700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    margin-top: 6px;
+}
+
+.points-big {
+    font-size: 26px;
+    font-weight: 900;
+    color: #32CD32;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    margin-top: 4px;
+}
+
+.catch-animation {
+    animation: catchSuccess 0.5s ease-in-out;
+}
+
+@keyframes catchSuccess {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); background-color: #90EE90; }
+    100% { transform: scale(1); }
+}
+
+.water-ripple {
+    position: absolute;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    animation: ripple 1s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes ripple {
+    0% {
+        width: 10px;
+        height: 10px;
+        opacity: 1;
+    }
+    100% {
+        width: 100px;
+        height: 100px;
+        opacity: 0;
+    }
+}
+
+/* Animace úspěšného chycení */
+@keyframes successPulse {
+    0% {
+        width: 50px;
+        height: 50px;
+        opacity: 1;
+        border-width: 3px;
+        transform: scale(1);
+    }
+    50% {
+        width: 80px;
+        height: 80px;
+        opacity: 0.8;
+        border-width: 5px;
+        transform: scale(1.2);
+    }
+    100% {
+        width: 120px;
+        height: 120px;
+        opacity: 0;
+        border-width: 2px;
+        transform: scale(1.5);
+    }
+}
+
+/* Plovoucí body / hvězdičky */
+.floating-points {
+    position: absolute;
+    color: #FFD700;
+    font-weight: 900;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    animation: floatUp 1s ease-out forwards;
+    pointer-events: none;
+    z-index: 20;
+}
+/* Perfect hod efekt */
+.perfect-ring {
+    position: absolute;
+    border: 3px solid rgba(255, 215, 0, 0.9);
+    border-radius: 50%;
+    animation: perfectPulse 700ms ease-out forwards;
+    pointer-events: none;
+    z-index: 16;
+}
+
+.perfect-badge {
+    position: absolute;
+    background: linear-gradient(90deg, #FFD700, #FFA500);
+    color: #2F4F4F;
+    font-weight: 900;
+    padding: 6px 10px;
+    border-radius: 9999px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    transform: translate(-50%, -50%) scale(0.8);
+    animation: perfectBadgePop 900ms ease-out forwards;
+    z-index: 21;
+}
+
+@keyframes perfectBadgePop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    20% { opacity: 1; transform: translate(-50%, -65%) scale(1.05); }
+    100% { opacity: 0; transform: translate(-50%, -100%) scale(0.9); }
+}
+
+@keyframes perfectPulse {
+    0% { width: 10px; height: 10px; opacity: 1; }
+    100% { width: 150px; height: 150px; opacity: 0; }
+}
+
+/* Bublina kačera */
+.duck-bubble {
+    position: absolute;
+    background: rgba(255,255,255,0.95);
+    border-radius: 10px;
+    padding: 6px 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    font-size: 14px;
+    z-index: 18;
+}
+
+/* Vignette overlay */
+.vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(80% 65% at 50% 50%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.25) 100%);
+    z-index: 8;
+}
+
+/* Countdown overlay */
+.countdown-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.35);
+    z-index: 2000;
+}
+.countdown-overlay.show { display: flex; }
+.countdown-number {
+    font-size: clamp(64px, 10vw, 120px);
+    font-weight: 900;
+    color: #FFD700;
+    text-shadow: 0 8px 22px rgba(0,0,0,0.6);
+    animation: popIn 800ms ease-out;
+}
+@keyframes popIn {
+    0% { transform: scale(0.6); opacity: 0; }
+    30% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+/* Combo badge */
+.combo-badge {
+    position: absolute;
+    background: linear-gradient(90deg, #FF69B4, #FFA500);
+    color: #2F4F4F;
+    font-weight: 900;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    transform: translate(-50%, -50%);
+    animation: comboRise 1000ms ease-out forwards;
+    z-index: 22;
+}
+@keyframes comboRise {
+    0% { opacity: 0; transform: translate(-50%, -10%) scale(0.9); }
+    20% { opacity: 1; transform: translate(-50%, -30%) scale(1.05); }
+    100% { opacity: 0; transform: translate(-50%, -80%) scale(0.95); }
+}
+
+/* Nový druh badge */
+.new-species-badge {
+    position: absolute;
+    background: linear-gradient(90deg, #7CFC00, #32CD32);
+    color: #1f3b1f;
+    font-weight: 900;
+    padding: 6px 10px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    transform: translateY(-10px);
+    animation: newSpeciesPop 1000ms ease-out forwards;
+    z-index: 22;
+}
+
+@keyframes newSpeciesPop {
+    0% { opacity: 0; transform: translateY(10px); }
+    20% { opacity: 1; transform: translateY(0px); }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+/* Spotlight při hodu */
+.spotlight-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    animation: spotlightFade 600ms ease-out forwards;
+    z-index: 12;
+}
+
+@keyframes spotlightFade {
+    0% { opacity: 0.4; }
+    100% { opacity: 0; }
+}
+
+/* Vlnky „skip“ po perfect hodu */
+.skip-ripple {
+    position: absolute;
+    border: 2px solid rgba(255,255,255,0.7);
+    border-radius: 50%;
+    width: 10px; height: 10px;
+    animation: skipWave 800ms ease-out forwards;
+    pointer-events: none;
+    z-index: 16;
+}
+
+@keyframes skipWave {
+    0% { transform: translate(0,0) scale(0.2); opacity: 1; }
+    100% { transform: translate(140px, -8px) scale(1.4); opacity: 0; }
+}
+
+@keyframes floatUp {
+    0% { transform: translate(-50%, 0); opacity: 1; }
+    100% { transform: translate(-50%, -40px); opacity: 0; }
+}
+
+/* Splash efekt u háčku */
+.splash {
+    position: absolute;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    animation: splashExpand 550ms ease-out forwards;
+    pointer-events: none;
+    z-index: 15;
+}
+
+@keyframes splashExpand {
+    0% { width: 10px; height: 10px; opacity: 1; }
+    100% { width: 120px; height: 120px; opacity: 0; }
+}
+
+/* Konfety */
+.confetti {
+    position: absolute;
+    width: 6px;
+    height: 10px;
+    opacity: 0.9;
+    transform: translate(-50%, -50%);
+    animation: confettiFall 900ms ease-out forwards;
+    pointer-events: none;
+}
+
+/* Pokladová bublina */
+.treasure-bubble {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(173,216,230,0.6));
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    border: 2px solid rgba(255,215,0,0.7);
+    cursor: pointer;
+    animation: treasureRise 6s linear forwards;
+    z-index: 14;
+}
+
+@keyframes treasureRise {
+    0% { transform: translateY(0); opacity: 0.9; }
+    90% { opacity: 0.9; }
+    100% { transform: translateY(-180px); opacity: 0; }
+}
+
+.treasure-bubble.pop {
+    animation: none;
+    transform: scale(1.4);
+    opacity: 0;
+    transition: transform 150ms ease, opacity 150ms ease;
+}
+
+@keyframes confettiFall {
+    0% { transform: translate(-50%, -50%) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-50%, -120%) rotate(360deg); opacity: 0; }
+}
+
+/* Album (modal) */
+.album-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Shop (skiny prutu) */
+.shop-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); z-index: 1100; }
+.shop-modal.show { display: flex; }
+.shop-content { background: #fff; border-radius: 12px; width: min(900px, 90vw); max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+.shop-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #2F4F4F; color: #fff; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 12px; overflow: auto; }
+.skin-card { background: #f7f7f7; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+.skin-preview { width: 16px; height: 120px; border-radius: 8px; box-shadow: inset 0 0 3px rgba(0,0,0,0.3); }
+.skin-actions { display: flex; gap: 8px; }
+
+.prefs-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1300; }
+.prefs-modal.show { display: flex; }
+.prefs-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); width: min(420px, 90vw); }
+.prefs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.toggle-btn { height: 64px; border-radius: 10px; border: none; background: #f2f2f2; font-size: 28px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center; }
+.toggle-btn.active { background: #d4ffd4; box-shadow: 0 0 0 2px #32CD32 inset; }
+.prefs-actions { display: flex; justify-content: center; margin-top: 12px; }
+
+.summary-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1400; }
+.summary-modal.show { display: flex; }
+.summary-card { background: #fff; border-radius: 14px; padding: 18px; width: min(360px, 90vw); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+.summary-row { display: flex; justify-content: space-between; font-size: 22px; padding: 6px 0; }
+.summary-actions { display: flex; justify-content: center; margin-top: 10px; }
+
+.photo-overlay { position: fixed; inset: 0; display: none; z-index: 1500; }
+.photo-overlay.show { display: block; }
+.photo-overlay .close-photo { position: absolute; top: 10px; right: 10px; }
+
+/* Sandbox overlay – skryje vše mimo horní menu a scénu */
+.sandbox-overlay-hidden {
+    display: none !important;
+}
+
+.album-modal.show { display: flex; }
+
+.album-content {
+    background: #fff;
+    border-radius: 12px;
+    width: min(900px, 90vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+/* Denní odměna popup */
+.reward-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.45);
+    z-index: 1200;
+}
+.reward-modal.show { display: flex; }
+.reward-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    text-align: center;
+}
+.reward-emoji { font-size: 48px; }
+.reward-amount { font-size: 28px; font-weight: 900; color: #FFD700; margin-top: 8px; }
+
+.album-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #2F4F4F;
+    color: #fff;
+}
+
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    padding: 12px;
+    overflow: auto;
+}
+
+.album-card {
+    background: #f7f7f7;
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.album-card img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+.album-card .caught-badge {
+    font-size: 18px;
+    margin-top: 6px;
+}
+
+/* Responzivní design */
+@media (max-width: 768px) {
+    .header {
+        padding: 8px 15px;
+    }
+    
+    .header h1 {
+        font-size: 20px;
+    }
+    
+    .score-board {
+        gap: 15px;
+        font-size: 16px;
+    }
+    
+    .info-panel {
+        right: 10px;
+        max-width: 250px;
+        font-size: 12px;
+    }
+    
+    .controls {
+        font-size: 12px;
+    }
+} 

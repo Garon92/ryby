@@ -1,0 +1,17 @@
+{
+  "name": "rybariska-hra",
+  "version": "1.0.0",
+  "description": "Rybářská hra s rybami z České republiky",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "path": "^0.12.7"
+  },
+  "keywords": ["fishing", "game", "czech", "fish"],
+  "author": "AI Assistant",
+  "license": "MIT"
+} 
