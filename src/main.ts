@@ -9,6 +9,7 @@ import {
   openSettingsDialog,
   recordActivity,
   sfx,
+  showHelp,
   showPause,
   subscribeSettings,
   toast,
@@ -97,7 +98,16 @@ const engine = new Engine(canvas, {
 });
 const hud = new Hud(stage);
 hud.onBait = (b) => setBait(b);
-hud.onMissions = () => openMissions(save);
+hud.onMissions = async () => {
+  if (state !== 'play') return void openMissions(save);
+  state = 'pause';
+  engine.setPaused(true);
+  await openMissions(save);
+  if (state === 'pause') {
+    state = 'play';
+    engine.setPaused(false);
+  }
+};
 
 function applyPrefs(): void {
   const p = save.prefs;
@@ -197,7 +207,7 @@ async function onStartChoice(c: StartChoice): Promise<void> {
       startUi?.refresh();
       return;
     case 'missions':
-      openMissions(save);
+      void openMissions(save);
       return;
     case 'daily':
       openDaily(save, onDailyClaim);
@@ -580,7 +590,10 @@ const release = () => {
 canvas.addEventListener('pointerup', release);
 canvas.addEventListener('pointercancel', release);
 canvas.addEventListener('pointermove', (e) => {
-  if (e.pointerType === 'mouse' && state === 'play') engine.aim = localPoint(e);
+  if (e.pointerType === 'mouse' && state === 'play') {
+    engine.aim = localPoint(e);
+    engine.keyAimActive = false;
+  }
 });
 canvas.addEventListener('pointerleave', () => (engine.aim = null));
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -620,6 +633,23 @@ window.addEventListener('keyup', (e) => {
 });
 
 pauseBtn.addEventListener('click', () => void pause());
+
+// nápověda z lišty: během hry hru pozastaví
+appbar.addEventListener('g92-help', (e) => {
+  e.preventDefault();
+  const wasPlaying = state === 'play';
+  if (wasPlaying) {
+    state = 'pause';
+    engine.setPaused(true);
+  }
+  const d = showHelp();
+  void (d?.closed ?? Promise.resolve()).then(() => {
+    if (wasPlaying && state === 'pause') {
+      state = 'play';
+      engine.setPaused(false);
+    }
+  });
+});
 
 appbar.addEventListener('g92-settings', (e) => {
   e.preventDefault();

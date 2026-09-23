@@ -126,6 +126,8 @@ export class Engine {
   known: ReadonlySet<string> = new Set();
   /** klávesnicové míření (když není myš) */
   keyAim = { x: 0.55, y: 0.5 };
+  /** hráč míří šipkami (ukázat zaměřovač i bez myši) */
+  keyAimActive = false;
   private idleT = 0;
   private autoT = 1;
   private bubbles: Bubble[] = [];
@@ -364,6 +366,7 @@ export class Engine {
 
   moveKeyAim(dx: number, dy: number): void {
     this.aim = null;
+    this.keyAimActive = true;
     this.keyAim.x = clamp(this.keyAim.x + dx, 0.05, 0.97);
     this.keyAim.y = clamp(this.keyAim.y + dy, 0.06, 0.94);
     this.idleT = 0;
@@ -1129,7 +1132,7 @@ export class Engine {
     const s = w.scale;
     const t = this.time;
     if (this.phase === 'idle' && !this.autopilot) {
-      const aim = this.aim ?? (this.idleT > 0.2 ? this.keyAimPoint() : null);
+      const aim = this.aim ?? (this.keyAimActive ? this.keyAimPoint() : null);
       if (aim && this.isWater(aim.x, aim.y)) {
         const R = BITE[this.difficulty].perfectRadius * s;
         const good = this.fishes.some((f) => {

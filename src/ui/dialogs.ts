@@ -7,10 +7,14 @@ import { fishThumbUrl } from '../game/sprites';
 import type { Save } from '../store/save';
 import { COIN_SVG, coinHTML } from './icons';
 
+const LOC_ICON: Record<string, string> = { rybnik: '🪷', reka: '🌉', potok: '🌲', prehrada: '⛵' };
+
 export function missionText(m: Mission): { icon: string; text: string } {
   return describeMission(m, (id) => {
     try {
-      return getSpecies(id).name;
+      const s = getSpecies(id);
+      // kde ryba žije (ikony míst), ať dítě ví, kam pro ni jít
+      return `${s.name} ${s.locations.map((l) => LOC_ICON[l] ?? '').join('')}`;
     } catch {
       return id;
     }
@@ -24,7 +28,7 @@ export function missionIcon(m: Mission): HTMLElement {
   return h('span', { 'aria-hidden': 'true' }, missionText(m).icon);
 }
 
-export function openMissions(save: Save): void {
+export function openMissions(save: Save): Promise<unknown> {
   const list = h('div', { class: 'mission-list' });
   for (const m of save.missions) {
     const d = missionText(m);
@@ -44,7 +48,7 @@ export function openMissions(save: Save): void {
     );
   }
   list.append(h('p', { class: 'g92-muted', style: 'text-align:center' }, `Za každou splněnou misi dostaneš mince a hned další misi. Splněno celkem: ${save.missionsDone}`));
-  openDialog({ title: 'Mise', icon: UI_ICONS.flame, content: list, actions: [{ label: 'Jdu chytat!', icon: UI_ICONS.check }] });
+  return openDialog({ title: 'Mise', icon: UI_ICONS.flame, content: list, actions: [{ label: 'Jdu chytat!', icon: UI_ICONS.check }] }).closed;
 }
 
 /** Denní odměna se sérií 7 dní. */

@@ -543,7 +543,8 @@ body.ryby {
   gap: 6px;
   padding: 6px 14px;
   border-radius: var(--g92-radius-pill);
-  background: var(--g92-gold-soft);
+  background: #ffe7a3;
+  color: #3d2b00;
   font-weight: var(--g92-fw-black);
   font-size: var(--g92-fs-lg);
   font-variant-numeric: tabular-nums;
@@ -1597,6 +1598,98 @@ html[data-scheme='dark'] .fish-card.is-locked img {
   .g92-overlay--results .g92-overlay__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ryba dne (jen na širokých obrazovkách v levém sloupci úvodu) */
+.fod {
+  display: none;
+  width: 100%;
+  grid-template-columns: 120px 1fr;
+  grid-template-rows: auto auto auto 1fr;
+  column-gap: 14px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: var(--g92-radius-xl);
+  border: 1px solid var(--g92-border);
+  background: var(--g92-surface-2);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--g92-dur-2) var(--g92-ease-spring);
+}
+
+.fod:hover {
+  transform: translateY(-2px);
+}
+
+.fod__eyebrow {
+  grid-column: 2;
+  font-size: var(--g92-fs-xs);
+  font-weight: var(--g92-fw-black);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.fod__pic {
+  grid-column: 1;
+  grid-row: 1 / span 4;
+  display: grid;
+  place-items: center;
+}
+
+.fod__pic img {
+  width: 120px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.fod.is-locked .fod__pic img {
+  filter: brightness(0);
+  opacity: 0.3;
+}
+
+html[data-scheme='dark'] .fod.is-locked .fod__pic img {
+  filter: brightness(0) invert(1);
+  opacity: 0.2;
+}
+
+.fod__name {
+  grid-column: 2;
+  font-weight: var(--g92-fw-black);
+  font-size: var(--g92-fs-lg);
+}
+
+.fod__meta {
+  grid-column: 2;
+}
+
+.fod__fact {
+  grid-column: 2;
+  color: var(--g92-text-muted);
+  font-size: var(--g92-fs-sm);
+  line-height: 1.3;
+}
+
+@media (min-width: 980px) and (min-height: 760px) {
+  .ryby-start .fod {
+    display: grid;
+  }
+}
+
+.mini-stars {
+  display: inline-flex;
+  gap: 1px;
+  font-size: 0.8em;
+  letter-spacing: -1px;
+  color: rgb(255 255 255 / 0.3);
+}
+
+.mini-stars .on {
+  color: #ffd54a;
+  text-shadow: 0 0 6px rgb(255 213 74 / 0.6);
 }
 
 .trophy-grid {

@@ -234,7 +234,7 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
       modeSeg,
       'ry-mode',
       st.mode,
-      (Object.keys(MODE_LABEL) as GameMode[]).map((m) => ({ v: m, icon: MODE_LABEL[m].icon, label: m === 'timed' ? 'Výprava 3 min' : 'Volně' })),
+      (Object.keys(MODE_LABEL) as GameMode[]).map((m) => ({ v: m, icon: MODE_LABEL[m].icon, label: m === 'timed' ? '3 minuty' : 'Volně' })),
       (v) => {
         st.mode = v;
         renderBest();

@@ -122,11 +122,14 @@ export class Hud {
         h('span', { class: 'emo', 'aria-hidden': 'true' }, it.icon),
         h('span', null, h('b', null, it.name), h('small', null, has ? (it.hint ?? '') : `V obchodě za ${it.price} mincí`)),
       );
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
         if (!has) return;
         sfx.pop();
         this.onBait(it.id as BaitId);
         this.toggleBaitPop(false);
+        // po kliknutí myší/prstem vrátit fokus hře (mezerník pak zase nahazuje)
+        if (e.detail > 0) (document.activeElement as HTMLElement | null)?.blur();
+        else this.baitBtn.focus();
       });
       this.baitPop.append(btn);
     }
