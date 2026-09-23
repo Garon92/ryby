@@ -601,6 +601,11 @@ body.ryby {
   opacity: 0.28;
 }
 
+html[data-scheme='dark'] .fish-card.is-locked img {
+  filter: brightness(0) invert(1);
+  opacity: 0.16;
+}
+
 .fish-card .nm {
   font-weight: var(--g92-fw-black);
   font-size: var(--g92-fs-sm);
@@ -956,18 +961,112 @@ body.ryby {
   gap: var(--g92-space-3);
 }
 
-.ryby-start .g92-overlay__icon:not(.g92-overlay__icon--sm) {
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
+.opt-row .g92-segmented {
+  flex-wrap: nowrap;
 }
 
-.ryby-start .g92-overlay__title:not(.g92-overlay__title--sm) {
-  font-size: var(--g92-fs-3xl);
+.opt-row .g92-segmented > label {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
-.ryby-start .g92-difficulty {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.opt-row .g92-segmented > label > span {
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+}
+
+@media (min-width: 980px) and (min-height: 640px) {
+  .ryby-start .g92-overlay__panel {
+    width: min(100%, 68rem);
+  }
+  .ryby-start .g92-overlay__panel > .g92-overlay__view:first-child:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 16px 32px;
+  }
+  .ryby-start .g92-overlay__view:first-child > .g92-overlay__hero,
+  .ryby-start .g92-overlay__view:first-child > .g92-overlay__controls {
+    display: grid;
+    justify-items: center;
+    gap: var(--g92-space-3);
+    min-width: 0;
+  }
+  .ryby-start .g92-overlay__view:first-child > .g92-overlay__controls {
+    padding-top: 8px;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .ryby-start .g92-overlay__panel {
+    width: min(100%, 62rem);
+  }
+  .ryby-start .g92-overlay__view:first-child .g92-overlay__icon,
+  .ryby-start .g92-overlay__view:first-child .g92-overlay__subtitle,
+  .ryby-start .g92-difficulty__hint,
+  .ryby-start .opt-row .g92-eyebrow,
+  .ryby-start .g92-overlay__view:first-child .g92-overlay__actions > .g92-btn--secondary,
+  .opt-row .g92-segmented .lbl,
+  .loc-blurb {
+    display: none;
+  }
+  .ryby-start .g92-overlay__view:first-child .g92-overlay__title {
+    font-size: var(--g92-fs-2xl);
+  }
+  .player-strip {
+    padding: 6px 10px;
+  }
+  .player-strip .lvl {
+    width: 44px;
+    height: 44px;
+    font-size: var(--g92-fs-lg);
+  }
+  .loc-grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 42%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .loc-card {
+    scroll-snap-align: start;
+    grid-template-rows: 56px auto auto;
+  }
+  .loc-card .thumb,
+  .loc-card .lock {
+    height: 56px;
+  }
+  .start-links .g92-btn {
+    min-height: 50px;
+  }
+  .hud-msg {
+    bottom: 76px;
+  }
+  .mission-chip .txt {
+    display: none;
+  }
+  .mission-chip {
+    padding: 3px;
+    min-height: 40px;
+  }
+  .pill {
+    min-height: 34px;
+    padding: 2px 10px 2px 8px;
+    font-size: var(--g92-fs-sm);
+  }
+  .timer-ring {
+    width: 20px;
+    height: 20px;
+  }
+  .bait-btn {
+    width: 54px;
+    height: 54px;
+    font-size: 24px;
+  }
+  .combo {
+    top: 50px;
+  }
 }
 
 .ryby-start .g92-difficulty__card {
@@ -1372,7 +1471,8 @@ body.ryby {
     grid-template-columns: 1fr;
   }
   .opt-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 8px;
   }
   .album-grid {
     grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
@@ -1426,8 +1526,27 @@ body.ryby {
   .ryby-start .g92-overlay__subtitle {
     display: none;
   }
+  .loc-grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 40%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding: 4px 2px 6px;
+  }
+  .loc-grid::-webkit-scrollbar {
+    display: none;
+  }
   .loc-card {
+    scroll-snap-align: start;
     grid-template-rows: 64px auto auto;
+  }
+  .opt-row .g92-segmented .lbl {
+    display: none;
+  }
+  .opt-row .g92-segmented .ico {
+    font-size: 20px;
   }
   .loc-card canvas,
   .loc-card .thumb,

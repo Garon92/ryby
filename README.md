@@ -1,108 +1,77 @@
-# 🎣 Rybářská hra - České ryby
+# 🎣 Ryby – rybářská hra s českými rybami
 
-Interaktivní rybářská hra s rybami z České republiky. Ovládejte rybáře myší, chytejte ryby a sbírejte body podle jejich vzácnosti!
+Dětská rybářská hra, ve které se chytá **59 druhů ryb žijících v Česku**. Nahodíš prut, počkáš na záběr,
+zasekneš a zdoláš rybu – a každý nový druh se uloží do **alba**, které funguje jako malá encyklopedie
+(fotka, české i latinské jméno, velikost, potrava, kde žije, zajímavosti pro děti, předčítání česky).
 
-## 🌟 Funkce
+**Hraj:** https://garon92.github.io/ryby/ (instalovatelné jako aplikace, funguje i offline)
 
-- **Pro děti**: velké hitboxy, auto-assist, piktogramy místo textu
-- **Album, mise a denní odměny**: piktogramové UI, žádné čtení
-- **Perfektní hod, combo a konfety**: vizuální odměny a zvuky
-- **Skiny prutu a „⭐“ mince**: jednoduchý shop bez textu
-- **Autopilot a Sandbox**: režimy pro nejmenší (viz níže)
-- **Realistické chování ryb** – plynulé plavání, hloubka, siluety
-- **Hlasové oznámení** – Web Speech přečte název ryby (čeština)
-- **Responzivní design** – funguje na mobilech i desktopu
+## Co ve hře je
 
-## 🎮 Jak hrát
+- **Čtyři místa** s vlastní krajinou a rybami podle skutečného výskytu: 🪷 rybník, 🌉 řeka, 🌲 potok, ⛵ přehrada.
+  Další místa se odemykají rybářskými úrovněmi (rodiče je mohou v nastavení odemknout hned).
+- **Skutečné rybaření:** hod obloukem, splávek, okusování, záběr, zaseknutí, zdolávání s ukazatelem napětí
+  vlasce (když je ručička v červeném, je třeba povolit), vylovení.
+- **Denní doba:** ráno, den, večer a noc s měsícem, hvězdami, světluškami a lucernou. V noci berou sumci,
+  úhoři, candáti a mníci.
+- **Návnady:** žížala, kukuřice, třpytka, muška – každá láká jiné ryby (podle toho, co ryba opravdu jí).
+- **Tři obtížnosti:** 🐣 Mrňous (ryba se zasekne sama, vlasec nepraskne), 🎣 Rybář, 🏆 Mistr.
+- **Režimy:** ⏱️ Výprava na 3 minuty (body, hvězdy, rekordy pro každé místo a obtížnost) a ♾️ Volné chytání.
+- **Autopilot** pro nejmenší – rybář chytá sám, ryby se ukládají do alba (bez mincí a bodů).
+- **Odměny:** mince za úlovky, mise (3 najednou, po splnění hned další), denní odměna se sérií 7 dní,
+  zlaté bubliny, série úlovků, perfektní hod, duhové a trofejní ryby, úrovně.
+- **Obchod:** pruty, splávky, návnady a klobouky pro rybáře.
+- **Chráněné ryby** se vyfotí do alba a pustí zpět do vody (hra to dítěti vysvětlí).
+- Ovládání **myší, dotykem i klávesnicí** (mezerník = nahodit / zaseknout / držet = navíjet, šipky = mířit,
+  B = návnada, Esc/P = pauza), celá obrazovka, auto-pauza při přepnutí záložky, světlý i tmavý vzhled.
 
-1. **Pohyb rybáře**: pohybujte myší (nebo prstem na mobilu) po horní části vody
-2. **Hod a chycení**: klikněte/ťukněte do vody; auto-assist pomůže přitáhnout rybu
-3. **Body a ⭐**: body podle velikosti a vzácnosti; ⭐ získáváte za úlovky a mise
-4. **Piktogramy**: ovládání je ikonami; žádný text není nutný číst
+## Vývoj
 
-## 🚀 Spuštění hry
-
-### Nejjednodušší (bez serveru)
-- Otevřete `index.html` dvojklikem (funguje z `file://`). Data ryb jsou vložená v HTML.
-
-### Alternativně (se serverem)
-- `npm install && npm start` a pak `http://localhost:3000`
-
-## 🐟 Ryby ve hře
-
-Hra obsahuje desítky druhů českých ryb včetně:
-
-- **Časté ryby** (nízká vzácnost): Plotice, Okoun, Kapr
-- **Středně vzácné**: Štika, Candát, Sumec
-- **Vzácné ryby** (vysoká vzácnost): Hlavatka, Jeseter, Losos
-
-Každá ryba má:
-- Unikátní vzhled podle skutečné fotografie
-- Realistickou velikost (10-120 cm)
-- Vzácnost od 1 do 10
-- Odpovídající chování při plavání
-
-## 🏆 Bodování
-
-- **Základní body** = `ceil(velikost/10) + (vzácnost × 5)`
-- **Perfect! hod**: +10 bodů
-- **Combo**: rychlé úlovky po sobě přidávají +5/+10...
-- **Sandbox mód**: body a ⭐ se nepřičítají (čistá hra pro děti)
-
-## 🔧 Technické detaily
-
-- **Frontend**: HTML5 Canvas, CSS3, JavaScript ES6+
-- **Backend (volitelně)**: Node.js + Express (není nutné; data jsou v `index.html`)
-- **Hlasový výstup**: Web Speech API
-- **Audio**: Web Audio API (hudba, efekty, combo, perfect)
-- **Grafika**: Canvas 2D API, animace a částice
-
-## 📁 Struktura projektu
-
-```
-ryby/
-├── index.html         # Hlavní HTML soubor (obsahuje vložená data ryb)
-├── style.css          # CSS styly
-├── game.js            # Herní logika
-├── ryby/              # Obrázky ryb (PNG)
-├── server.js          # Volitelný Node server (není potřeba)
-├── package.json       # Volitelné skripty
-└── README.md          # Tento soubor
+```bash
+npm install
+npm run dev        # http://localhost:5175/ryby/
+npm test           # Vitest – logika hry (záběry, zdolávání, bodování, mise, ukládání…)
+npm run typecheck
+npm run build      # → dist/ (PWA)
+npm run preview
 ```
 
-## 🎯 Budoucí vylepšení
+Stack: Vite + TypeScript (strict) bez frameworku, Canvas 2D (ostré na retině), vite-plugin-pwa,
+sdílený design systém **g92 kit** v `src/kit/` (needitovat – synchronizuje se z repa `menu`).
 
-- [ ] Více levelů obtížnosti
-- [ ] Achievementy a trofeje
-- [ ] Uložení nejlepších skóre
-- [ ] Multiplayer režim
-- [ ] Více rybářských technik
-- [ ] Sezónní změny v dostupnosti ryb
+```
+src/
+  data/        species.ts (59 druhů, opravená data), locations.ts, shop.ts, fish-images.json
+  game/        engine.ts (stavový automat rybaření), fish.ts, fisher.ts, scene/ (krajina, voda, dno),
+               audio.ts (WebAudio), speech.ts (český hlas), logic/ (čistá testovaná logika), rewards.ts
+  store/       save.ts (verzovaný postup + migrace starých klíčů), index.ts (kit store)
+  ui/          start, hud, album, shop, catchCard, results, dialogs, settings
+  kit/         g92 kit (vendored)
+public/fish/   WebP obrázky ryb (plné + náhledy 256 px)
+scripts/       build-images.mjs (sharp: PNG → WebP)
+```
 
-## 🐛 Řešení problémů
+### Obrázky ryb
 
-**Ryby se nezobrazují:**
-- Otevřete `index.html` přímo (file://). Pokud jste přes server, ověřte cesty k `ryby/*.png`.
-- Otevřete Developer Tools (F12) a zkontrolujte chyby v konzoli
+Původní PNG výřezy (10 MB) byly převedeny na WebP s průhledností (≈ 1,9 MB včetně náhledů) a z repa
+odstraněny – zůstávají v historii gitu (commit `29d3b81`). Nové převedení:
 
-**Hlas nefunguje:**
-- Povolte přístup k audio v prohlížeči
-- Zkontrolujte, že máte nainstalovaný český hlas v systému
+```bash
+git archive 29d3b81 ryby | tar -x -C /tmp/ryby-src
+node scripts/build-images.mjs --src=/tmp/ryby-src/ryby
+```
 
-**Hra se nespustí:**
-- Použijte dvojklik na `index.html` (server není nutný)
+### Uložený postup
 
-## 📧 Kontakt
+Vše je v `localStorage` pod klíčem `g92:ryby:save` (album, mince, úroveň, mise, vybavení, rekordy, nastavení).
+Při prvním spuštění se automaticky převezmou data z původní verze hry (mince, rekord, koupené pruty,
+denní odměna, předvolby) a staré klíče se smažou.
 
-Vytvořeno s ❤️ pro milovníky rybaření a českých ryb!
+## Nasazení
+
+GitHub Actions (`.github/workflows/deploy.yml`): typecheck → testy → build → GitHub Pages.
 
 ---
 
-*Poznámka: Všechny obrázky ryb pocházejí z databáze českých ryb a jsou použity pouze pro vzdělávací a zábavní účely.* 
----
-
-## Nasazení (GitHub Pages)
-
-- Deploy přes GitHub Actions.
-- Očekávaná URL: https://garon92.github.io/ryby/
-- Tip: používat relativní cesty k assetům (./img/..., ./css/..., ./js/...).
+Obrázky ryb pocházejí z databáze českých ryb a jsou použity pouze pro vzdělávací a zábavní účely.
+Údaje o rybách vycházejí z českých rybářských atlasů; zajímavosti jsou zjednodušené pro děti.

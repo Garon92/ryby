@@ -75,6 +75,8 @@ export interface StartOptions extends OverlayBaseOptions {
   showHowTo?: boolean;
   /** also register howTo/keys as the appbar "?" help (setHelp) so it is available during the game */
   helpInAppbar?: boolean;
+  /** smaller icon/title/gaps — use when you add `extra` content so "Hrát" stays above the fold */
+  compact?: boolean;
 }
 
 export interface StartResult {
@@ -107,6 +109,8 @@ export interface ResultsOptions extends OverlayBaseOptions {
   maxStars?: number;
   stats?: { label: string; value: number | string; icon?: string }[];
   againLabel?: string;
+  /** icon (SVG string) of the primary button; default UI_ICONS.restart — e.g. UI_ICONS.arrowRight for "Další úroveň" */
+  againIcon?: string;
   /** where "Menu" goes; null = just resolve 'menu' (default '/menu/') */
   menuHref?: string | null;
   menuLabel?: string;
@@ -170,9 +174,13 @@ function mount<T>(opts: OverlayBaseOptions, kind: string, build: (close: (v: T) 
   }
   build(close, panel);
   if (opts.extra) {
+    const wrap = h('div', { class: 'g92-overlay__extra' }, opts.extra);
     const actions = panel.querySelector('.g92-overlay__actions');
-    panel.insertBefore(opts.extra, actions);
+    (actions?.parentElement ?? panel).insertBefore(wrap, actions);
   }
+  // hero (icon, title, score…) | controls (choices, stats, buttons) — side by side on short landscape screens
+  const containers = panel.querySelector(':scope > .g92-overlay__view') ? [...panel.querySelectorAll<HTMLElement>(':scope > .g92-overlay__view')] : [panel];
+  for (const c of containers) splitHeroControls(c);
   window.addEventListener('keydown', keyHandler, true);
   container.append(root);
   const primary = panel.querySelector<HTMLElement>('[data-primary]');
@@ -180,6 +188,15 @@ function mount<T>(opts: OverlayBaseOptions, kind: string, build: (close: (v: T) 
   promise.el = root;
   promise.close = close;
   return promise;
+}
+
+const CONTROL_SEL = '.g92-overlay__section, .g92-overlay__stats, .g92-overlay__extra, .g92-howto, .g92-keys, .g92-overlay__actions';
+
+function splitHeroControls(c: HTMLElement): void {
+  const kids = [...c.children];
+  const idx = kids.findIndex((k) => k.matches(CONTROL_SEL));
+  if (idx <= 0) return;
+  c.append(h('div', { class: 'g92-overlay__hero' }, ...kids.slice(0, idx)), h('div', { class: 'g92-overlay__controls' }, ...kids.slice(idx)));
 }
 
 function isTyping(e: KeyboardEvent): boolean {
@@ -197,7 +214,7 @@ export function showStart(opts: StartOptions = {}): OverlayPromise<StartResult> 
   if (opts.helpInAppbar && (opts.howTo?.length || opts.keys?.length)) setHelp({ title: 'Jak hrát', howTo: opts.howTo, keys: opts.keys });
 
   return mount<StartResult>(
-    { backdrop: 'solid', ...opts },
+    { backdrop: 'solid', ...opts, className: `${opts.compact ? 'g92-overlay--compact ' : ''}${opts.className ?? ''}`.trim() || undefined },
     'start',
     (close, panel) => {
       const main = h('div', { class: 'g92-overlay__view' });
@@ -214,6 +231,8 @@ export function showStart(opts: StartOptions = {}): OverlayPromise<StartResult> 
       if (opts.difficulties?.length) {
         const name = `g92-diff-${Math.random().toString(36).slice(2, 7)}`;
         const group = h('div', { class: 'g92-difficulty', role: 'radiogroup', 'aria-label': opts.difficultyLabel ?? 'Obtížnost' });
+        // up to 4 options always stay in one row (even on 360px phones)
+        if (opts.difficulties.length <= 4) group.style.gridTemplateColumns = `repeat(${opts.difficulties.length}, minmax(0, 1fr))`;
         for (const d of opts.difficulties) {
           const input = h('input', { type: 'radio', name, value: d.id }) as HTMLInputElement;
           input.checked = d.id === difficulty;
@@ -424,7 +443,7 @@ export function showResults(opts: ResultsOptions = {}): OverlayPromise<ResultsCh
       }
       if (opts.stats?.length) panel.append(statsEl(opts.stats));
 
-      const again = h('button', { type: 'button', class: 'g92-btn g92-btn--xl g92-btn--block', 'data-primary': true, html: UI_ICONS.restart });
+      const again = h('button', { type: 'button', class: 'g92-btn g92-btn--xl g92-btn--block', 'data-primary': true, html: opts.againIcon ?? UI_ICONS.restart });
       again.append(opts.againLabel ?? 'Hrát znovu');
       again.addEventListener('click', () => {
         sfx.pop();

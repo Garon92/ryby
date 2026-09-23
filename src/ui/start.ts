@@ -92,6 +92,7 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
     appId: 'ryby',
     className: 'ryby-start',
     backdrop: 'blur',
+    compact: true,
     difficulties: (Object.keys(DIFFICULTY_LABEL) as Difficulty[]).map((d) => ({
       id: d,
       label: DIFFICULTY_LABEL[d].name,
@@ -130,11 +131,15 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
   );
   const links = h('div', { class: 'start-links' });
 
-  (subtitle ?? main.firstChild)?.after(strip);
-  if (diffSection) {
-    diffSection.before(locSection);
-    diffSection.after(opts);
-  } else actions.before(locSection, opts);
+  // hrdina (vlevo na širokých obrazovkách): hráč + lokality; ovládání (vpravo): obtížnost, režim, Hrát
+  const hero = main.querySelector<HTMLElement>(':scope > .g92-overlay__hero');
+  if (hero) hero.append(strip, locSection);
+  else {
+    (subtitle ?? main.firstChild)?.after(strip);
+    (diffSection ?? actions).before(locSection);
+  }
+  if (diffSection) diffSection.after(opts);
+  else actions.before(opts);
   actions.after(links);
 
   // obtížnost ze skupiny kitu
@@ -153,17 +158,17 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
     onChoice({ kind: 'play', ...st });
   });
 
-  function seg<T extends string>(host: HTMLElement, name: string, value: T, items: { v: T; label: string }[], set: (v: T) => void): void {
+  function seg<T extends string>(host: HTMLElement, name: string, value: T, items: { v: T; icon: string; label: string }[], set: (v: T) => void): void {
     host.textContent = '';
     for (const it of items) {
-      const input = h('input', { type: 'radio', name, value: it.v }) as HTMLInputElement;
+      const input = h('input', { type: 'radio', name, value: it.v, 'aria-label': it.label }) as HTMLInputElement;
       input.checked = it.v === value;
       input.addEventListener('change', () => {
         if (!input.checked) return;
         sfx.click();
         set(it.v);
       });
-      host.append(h('label', null, input, h('span', null, it.label)));
+      host.append(h('label', { title: it.label }, input, h('span', null, h('span', { class: 'ico', 'aria-hidden': 'true' }, it.icon), h('span', { class: 'lbl' }, it.label))));
     }
   }
 
@@ -229,7 +234,7 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
       modeSeg,
       'ry-mode',
       st.mode,
-      (Object.keys(MODE_LABEL) as GameMode[]).map((m) => ({ v: m, label: `${MODE_LABEL[m].icon} ${MODE_LABEL[m].name}` })),
+      (Object.keys(MODE_LABEL) as GameMode[]).map((m) => ({ v: m, icon: MODE_LABEL[m].icon, label: m === 'timed' ? 'Výprava 3 min' : 'Volně' })),
       (v) => {
         st.mode = v;
         renderBest();
@@ -240,9 +245,9 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
       'ry-clock',
       st.clock,
       [
-        { v: 'flow', label: '🌅 Plyne' },
-        { v: 'day', label: '☀️ Den' },
-        { v: 'night', label: '🌙 Noc' },
+        { v: 'flow', icon: '🌅', label: 'Plyne' },
+        { v: 'day', icon: '☀️', label: 'Den' },
+        { v: 'night', icon: '🌙', label: 'Noc' },
       ],
       (v) => {
         st.clock = v;

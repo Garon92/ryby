@@ -26,15 +26,24 @@ const isSvg = (s: string) => s.trimStart().startsWith('<svg');
 export function setHelp(content: HelpContent | null): () => void {
   current = content;
   if (typeof document !== 'undefined') {
-    for (const bar of document.querySelectorAll('g92-appbar')) {
-      if (content) bar.setAttribute('help', '');
-      else if (bar.hasAttribute('data-auto-help')) bar.removeAttribute('help');
-      if (content) bar.setAttribute('data-auto-help', '');
-    }
+    for (const bar of document.querySelectorAll('g92-appbar')) syncAppbarHelp(bar);
   }
   return () => {
     if (current === content) setHelp(null);
   };
+}
+
+/** @internal keeps an appbar's "?" in sync with the registered help */
+export function syncAppbarHelp(bar: Element): void {
+  if (current) {
+    if (!bar.hasAttribute('help')) {
+      bar.setAttribute('help', '');
+      bar.setAttribute('data-auto-help', '');
+    }
+  } else if (bar.hasAttribute('data-auto-help')) {
+    bar.removeAttribute('help');
+    bar.removeAttribute('data-auto-help');
+  }
 }
 
 export function getHelp(): HelpContent | null {

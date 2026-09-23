@@ -1,13 +1,13 @@
 import { h, sfx, UI_ICONS } from '../kit';
 import { LOCATIONS, LOCATION_BY_ID } from '../data/locations';
-import { DIET_LABEL, RARITY_LABEL, SPECIES, ZONE_LABEL, type LocationId, type Species } from '../data/species';
+import { DIET_LABEL, SPECIES, ZONE_LABEL, type LocationId, type Species } from '../data/species';
 import { BAITS, type BaitId } from '../data/shop';
 import { baitAffinity } from '../game/logic/spawn';
 import { speech } from '../game/speech';
 import { fishImageUrl, fishThumbUrl } from '../game/sprites';
 import { albumProgress } from '../game/rewards';
 import type { Save } from '../store/save';
-import { esc, fmtDate, gemsHTML, plural, rarityHTML } from './common';
+import { esc, fmtDate, gemsHTML, rarityHTML } from './common';
 import { openSheet, tabButton } from './sheet';
 
 type Filter = 'all' | LocationId | 'caught';
@@ -207,9 +207,8 @@ export function openAlbum(save: Save, opts: { focus?: string; filter?: Filter } 
     }
     row('Nejlépe bere na', bait ? `${bait.icon} ${esc(bait.name.toLowerCase())}` : '🪱 žížalu');
     if (!known) row('Kdy loví', s.night ? '🌙 hlavně za šera a v noci' : '☀️ hlavně ve dne');
-    if (known) row('Vzácnost', `${gemsHTML(s.rarity)} ${RARITY_LABEL[s.rarity]}`);
     if (e) {
-      row('Tvoje úlovky', `${e.count}× ${plural(e.count, 'chycena', 'chyceny', 'chyceno')}`);
+      row('Tvoje úlovky', `chyceno ${e.count}×`);
       row('Největší kus', `📏 ${e.best} cm${e.trophy ? ' 🏆' : ''}`);
       row('Poprvé', `📅 ${fmtDate(e.first)}${e.rainbow ? ' · 🌈 i duhová!' : ''}`);
     }

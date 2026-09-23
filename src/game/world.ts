@@ -36,7 +36,8 @@ export function computeWorld(w: number, h: number, dpr: number, loc: LocationDef
   const surfaceY = Math.round(h * surface);
   const bed = Math.max(26, h * 0.06);
   const bottomY = h - bed;
-  const fs = Math.min(1.35, Math.max(0.82, scale * 1.2));
+  // rybář i se zdviženým prutem se musí vejít nad hladinu (nízké obrazovky na šířku)
+  const fs = Math.min(Math.min(1.35, Math.max(0.82, scale * 1.2)), Math.max(0.5, (surfaceY - 10) / 150));
   const fisherX = Math.round(portrait ? Math.max(58 * fs, w * 0.15) : Math.max(100, w * 0.12));
   const fisherY = surfaceY - (loc.spot === 'boat' ? 6 * fs : loc.spot === 'rock' ? 26 * fs : 14 * fs);
   const wallTop = loc.spot === 'bank' ? fisherX + 50 * fs : loc.spot === 'rock' ? fisherX + 64 * fs : 0;

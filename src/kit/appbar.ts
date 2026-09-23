@@ -30,7 +30,7 @@
 import { recordActivity } from './activity';
 import { applyAccent, getApp } from './apps';
 import { openSettingsDialog } from './dialog';
-import { getHelp, showHelp } from './help';
+import { getHelp, showHelp, syncAppbarHelp } from './help';
 import { UI_ICONS } from './dom';
 import { getSettings, resolvedTheme, setSettings, subscribeSettings } from './settings';
 import { sfx } from './sfx';
@@ -246,6 +246,7 @@ export class G92Appbar extends HTMLElement {
   }
 
   connectedCallback(): void {
+    syncAppbarHelp(this);
     this.#render();
     this.#renderSound();
     this.#offSettings ??= subscribeSettings(() => {
