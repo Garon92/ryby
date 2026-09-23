@@ -51,6 +51,8 @@ export class Fish {
     this.dir = rng() < 0.5 ? -1 : 1;
     // u břehu/skály vlevo připlouvají ryby jen zprava
     if (fromEdge && world.wallTop > 0) this.dir = -1;
+    // z must be set before widthPx() (it scales the width) — otherwise fish entering from the edge get x = NaN
+    this.z = rng() * 0.8;
     const wPx = this.widthPx(world);
     if (fromEdge) {
       this.x = this.dir === 1 ? -wPx * 0.6 : world.w + wPx * 0.6;
@@ -59,7 +61,6 @@ export class Fish {
       this.alpha = 1;
     }
     this.facing = this.dir;
-    this.z = rng() * 0.8;
     this.phase = rng() * TAU;
     this.targetX = this.x + this.dir * world.w * 0.4;
     this.targetY = this.y;
