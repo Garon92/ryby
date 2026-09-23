@@ -18,6 +18,7 @@ export function fishAspect(id: string): number {
 interface Entry {
   img: HTMLImageElement;
   ready: boolean;
+  failed?: boolean;
   scaled: Map<number, HTMLCanvasElement>;
   rainbow: Map<number, HTMLCanvasElement>;
 }
@@ -33,9 +34,19 @@ export function loadSprite(id: string): Entry {
   img.onload = () => {
     entry.ready = true;
   };
+  // obrázek se nenačetl (offline bez cache) – rybu přesto ukázat jako siluetu, ať rybník není prázdný
+  img.onerror = () => {
+    entry.failed = true;
+  };
   img.src = fishImageUrl(id);
   cache.set(id, entry);
   return entry;
+}
+
+/** Obrázek je načtený (nebo se načíst nedá) – ryba se může ukázat. */
+export function spriteSettled(id: string): boolean {
+  const e = loadSprite(id);
+  return e.ready || !!e.failed;
 }
 
 export function preloadSprites(ids: Iterable<string>): Promise<void> {

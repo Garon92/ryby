@@ -14,24 +14,26 @@ export class Fish {
   readonly sizeCm: number;
   readonly trophy: boolean;
   readonly rainbow: boolean;
-  x: number;
-  y: number;
+  // Všechna čísla mají výchozí hodnotu: s useDefineForClassFields je pole bez inicializace `undefined`
+  // a použití před přiřazením v konstruktoru dává NaN (QA RYBY-01).
+  x = 0;
+  y = 0;
   vx = 0;
   vy = 0;
   /** -1 = hlava vlevo (jak je obrázek), +1 = hlava vpravo */
-  dir: -1 | 1;
+  dir: -1 | 1 = 1;
   /** plynulé otáčení: -1..1 */
-  facing: number;
+  facing = 1;
   /** 0 = u nás, 1 = daleko (menší a kalnější) */
-  z: number;
-  phase: number;
+  z = 0;
+  phase = 0;
   state: FishState = 'wander';
   stateT = 0;
-  targetX: number;
-  targetY: number;
+  targetX = 0;
+  targetY = 0;
   /** ryba je chvíli vyplašená a návnady si nevšímá */
   spooked = 0;
-  life: number;
+  life = 30;
   /** průhlednost při připlutí / odplutí */
   alpha = 0;
   nibblesLeft = 0;
@@ -39,7 +41,7 @@ export class Fish {
   thrash = 0;
   /** úhel těla (při zdolávání) */
   angle = 0;
-  private cruise: number;
+  private cruise = 30;
 
   constructor(species: Species, sizeCm: number, trophy: boolean, rainbow: boolean, world: World, rng: Rng, fromEdge: boolean) {
     this.species = species;
@@ -57,8 +59,8 @@ export class Fish {
     if (fromEdge) {
       this.x = this.dir === 1 ? -wPx * 0.6 : world.w + wPx * 0.6;
     } else {
+      // počáteční ryby se objeví plynulým zprůhledněním, jakmile se načte obrázek
       this.x = world.w * (0.08 + rng() * 0.84);
-      this.alpha = 1;
     }
     this.facing = this.dir;
     this.phase = rng() * TAU;

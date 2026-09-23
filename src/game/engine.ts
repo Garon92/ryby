@@ -23,7 +23,7 @@ import { clamp, randomRng } from './logic/rng';
 import { depthMatch, effectiveAffinity, locationPool, pickSpecies, RAINBOW_CHANCE, rollSize } from './logic/spawn';
 import { Scene } from './scene/scene';
 import { daylight, isNight } from './sky';
-import { preloadSprites } from './sprites';
+import { loadSprite, spriteSettled } from './sprites';
 import type { Difficulty } from './types';
 import { easeInOutSine, easeOutCubic, lerp, TAU } from './util';
 import { computeWorld, depth01, wallX, type World } from './world';
@@ -162,7 +162,6 @@ export class Engine {
     this.scene.lite = this.lite;
     this.resize(true);
     this.resetRound();
-    void preloadSprites(locationPool(SPECIES, id).map((s) => s.id));
     this.updateAmbience();
   }
 
@@ -234,6 +233,12 @@ export class Engine {
     const { cm, trophy } = rollSize(s, randomRng);
     const f = new Fish(s, cm, trophy, Math.random() < RAINBOW_CHANCE, this.world, randomRng, fromEdge);
     f.pickWanderTarget(this.world, randomRng);
+    // pojistka: ryba s neplatnou pozicí by byla neviditelná a zabírala místo v populaci (QA RYBY-01)
+    if (!isFiniteFish(f)) {
+      if (import.meta.env.DEV) console.error('Fish spawned with invalid position', f.species.id, f.x, f.y);
+      return;
+    }
+    loadSprite(s.id);
     this.fishes.push(f);
     if (fromEdge && !this.attract && (s.rarity >= 4 || f.rainbow)) this.events.onRare?.(f);
   }
@@ -774,7 +779,9 @@ export class Engine {
     for (const f of this.fishes) {
       f.stateT += dt;
       if (f.spooked > 0) f.spooked -= dt;
-      if (f.state !== 'leave' && f.state !== 'hooked' && f.state !== 'landing') f.alpha = Math.min(1, f.alpha + dt * 1.5);
+      if (f.state !== 'leave' && f.state !== 'hooked' && f.state !== 'landing' && spriteSettled(f.species.id)) {
+        f.alpha = Math.min(1, f.alpha + dt * 1.5);
+      }
       switch (f.state) {
         case 'wander': {
           f.life -= dt;
@@ -877,7 +884,9 @@ export class Engine {
     }
     // odplavané ryby pryč, doplnit populaci z okrajů
     const margin = 260 * w.scale;
-    this.fishes = this.fishes.filter((f) => !(f.state === 'leave' && (f.x < -margin || f.x > w.w + margin || f.alpha <= 0)));
+    this.fishes = this.fishes.filter(
+      (f) => isFiniteFish(f) && !(f.state === 'leave' && (f.x < -margin || f.x > w.w + margin || f.alpha <= 0)),
+    );
     const target = this.population();
     if (this.fishes.length < target && Math.random() < dt * 1.2) this.spawnFish(true);
   }
@@ -1390,6 +1399,10 @@ export class Engine {
   get fightState(): FightState | null {
     return this.fight;
   }
+}
+
+function isFiniteFish(f: Fish): boolean {
+  return Number.isFinite(f.x) && Number.isFinite(f.y) && Number.isFinite(f.targetX) && Number.isFinite(f.targetY);
 }
 
 function tensionColor(t: number): string {
