@@ -75,6 +75,7 @@ export class GameAudio {
       }
       this.startWater();
       this.applyVolumes();
+      if (this.rainLevel > 0) this.setRain(this.rainLevel);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
@@ -122,6 +123,31 @@ export class GameAudio {
       this.waterFilter.frequency.setTargetAtTime(350 + a.water * 900, t, 0.5);
       this.waterGain.gain.setTargetAtTime(0.025 + a.water * 0.05, t, 0.5);
     }
+  }
+
+  private rainGain: GainNode | null = null;
+  private rainLevel = 0;
+
+  /** šumění deště 0..1 */
+  setRain(level: number): void {
+    this.rainLevel = level;
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (!this.rainGain) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.noise;
+      src.loop = true;
+      const f = ctx.createBiquadFilter();
+      f.type = 'bandpass';
+      f.frequency.value = 2600;
+      f.Q.value = 0.4;
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      src.connect(f).connect(g).connect(this.ambGain);
+      src.start();
+      this.rainGain = g;
+    }
+    this.rainGain.gain.setTargetAtTime(level * 0.09, ctx.currentTime, 1.2);
   }
 
   private startWater(): void {

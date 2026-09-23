@@ -174,6 +174,20 @@ export class Engine {
     this.gear = { ...this.gear, bait: b };
   }
 
+  /** 0 = jasno … 1 = déšť */
+  rain = 0;
+  private rainTarget = 0;
+
+  setRain(on: boolean, instant = false): void {
+    this.rainTarget = on ? 1 : 0;
+    if (instant) this.rain = this.rainTarget;
+    this.audio.setRain(this.rainTarget);
+  }
+
+  get raining(): boolean {
+    return this.rainTarget > 0;
+  }
+
   setClock(mode: ClockMode, timed: boolean): void {
     this.clockMode = mode;
     this.timed = timed;
@@ -477,6 +491,11 @@ export class Engine {
     this.updateFish(dt);
     this.updateExtras(dt);
     this.fx.update(dt);
+    this.rain += (this.rainTarget - this.rain) * Math.min(1, dt * 0.6);
+    if (this.rain > 0.2 && Math.random() < dt * 14 * this.rain) {
+      const rx = Math.random() * w.w;
+      this.fx.ripple(rx, this.scene.waveY(rx, this.time), w.scale * 0.35);
+    }
     this.audio.tick(dt);
     if (this.autopilot || this.attract) this.updateAutopilot(dt);
     else if (this.phase === 'idle') this.idleT += dt;
@@ -746,7 +765,8 @@ export class Engine {
             const aff = effectiveAffinity(f.species, this.gear.bait, this.difficulty);
             const m = f.mouth(w);
             const dist01 = Math.hypot(m.x - this.hookX, m.y - this.hookY) / (tune.attractRadius * w.scale);
-            const nightBonus = night && f.species.night ? 1.5 : 1;
+            // v noci berou noční druhy, za deště berou ryby lépe
+            const nightBonus = (night && f.species.night ? 1.5 : 1) * (1 + 0.35 * this.rain);
             const p = interestChance(tune, aff, depthMatch(f.species.zone, baitDepth), dist01, nightBonus, dt);
             if (p > 0 && Math.random() < p) this.makeInterested(f, false);
           }
@@ -994,6 +1014,8 @@ export class Engine {
       if (Math.random() < 0.5) this.fx.bubbles(hooked.x, hooked.y, s, 0);
     }
 
+    // déšť: šedivější svět a kapky nad hladinou
+    if (this.rain > 0.02) this.drawRain(x);
     // noc/večer
     const tinted = this.scene.applyTint(x, this.hour);
     if (tinted) {
@@ -1190,6 +1212,40 @@ export class Engine {
       x.restore();
     }
     if (this.phase === 'fight' && this.fight) this.drawGauge(x, this.fight);
+  }
+
+  private drawRain(x: CanvasRenderingContext2D): void {
+    const w = this.world;
+    const s = w.scale;
+    const a = this.rain;
+    x.save();
+    const sky = x.createLinearGradient(0, 0, 0, w.surfaceY);
+    sky.addColorStop(0, `rgba(88,98,112,${0.62 * a})`);
+    sky.addColorStop(1, `rgba(110,120,132,${0.32 * a})`);
+    x.fillStyle = sky;
+    x.fillRect(0, 0, w.w, w.surfaceY);
+    x.fillStyle = `rgba(40,55,70,${0.18 * a})`;
+    x.fillRect(0, w.surfaceY, w.w, w.h - w.surfaceY);
+    x.beginPath();
+    x.rect(0, 0, w.w, w.surfaceY + 2);
+    x.clip();
+    x.strokeStyle = `rgba(210,225,240,${0.45 * a})`;
+    x.lineWidth = 1.2 * s;
+    x.lineCap = 'round';
+    const n = Math.round((w.w / 7) * a * (this.lite ? 0.5 : 1));
+    const t = this.time;
+    const fall = w.surfaceY + 40;
+    x.beginPath();
+    for (let i = 0; i < n; i++) {
+      const speed = 520 + (i % 7) * 40;
+      const px = ((i * 97.13 + t * 90) % (w.w + 60)) - 30;
+      const py = ((i * 53.7 + t * speed) % fall) - 20;
+      const len = (12 + (i % 5) * 3) * s;
+      x.moveTo(px, py);
+      x.lineTo(px - len * 0.18, py + len);
+    }
+    x.stroke();
+    x.restore();
   }
 
   private drawNameTag(x: CanvasRenderingContext2D, f: Fish): void {

@@ -91,9 +91,9 @@ export class Hud {
     if (bump) this.bump(this.coinsPill);
   }
 
-  setClock(hour: number): void {
+  setClock(hour: number, rain = false): void {
     const t = timeLabel(hour);
-    this.clockIcon.textContent = t.icon;
+    this.clockIcon.textContent = rain ? '🌧️' : t.icon;
     this.clockText.textContent = fmtClock(hour);
     this.clockIcon.parentElement?.setAttribute('title', t.name);
   }

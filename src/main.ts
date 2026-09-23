@@ -161,6 +161,7 @@ function showHome(): void {
   stage.classList.add('is-attract');
   if (engine.loc.id !== save.prefs.location && unlockedLocations(save).includes(save.prefs.location)) engine.setLocation(save.prefs.location);
   engine.setClock(save.prefs.clock === 'flow' ? 'day' : save.prefs.clock, false);
+  engine.setRain(false, true);
   if (save.prefs.clock === 'flow') engine.hour = 9.5;
   startUi = openStart(save, (c) => void onStartChoice(c));
   // první spuštění dne → nabídni denní odměnu
@@ -222,6 +223,9 @@ async function startSession(): Promise<void> {
   if (engine.loc.id !== p.location) engine.setLocation(p.location);
   else engine.resetRound();
   engine.setClock(p.clock, p.mode === 'timed');
+  // občas prší – ryby pak berou lépe
+  const rainy = Math.random() < 0.22;
+  engine.setRain(rainy, true);
   applyPrefs();
   engine.autopilot = p.autopilot;
   session = {
@@ -249,7 +253,8 @@ async function startSession(): Promise<void> {
   hud.setTimer(TIMED_SECONDS, TIMED_SECONDS);
   hud.setScore(0);
   hud.setCombo(0);
-  hud.setClock(engine.hour);
+  hud.setClock(engine.hour, rainy);
+  clockShown = -1;
   hud.show(true);
   pauseBtn.hidden = false;
   engine.setPaused(true);
@@ -258,6 +263,7 @@ async function startSession(): Promise<void> {
   if (state !== 'play') return;
   engine.setPaused(false);
   hud.message(p.autopilot ? 'Autopilot chytá za tebe' : 'Ťukni do vody u ryby', p.autopilot ? '🤖' : '👆', '', 2600);
+  if (rainy) setTimeout(() => state === 'play' && hud.message('Prší – ryby lépe berou!', '🌧️', 'good', 2600), 2900);
 }
 
 // ————————————————————————————————— hra —————————————————————————————————
@@ -270,7 +276,7 @@ function tick(dt: number): void {
   save.stats.playSeconds += dt;
   if (Math.floor(engine.hour * 6) !== clockShown) {
     clockShown = Math.floor(engine.hour * 6);
-    hud.setClock(engine.hour);
+    hud.setClock(engine.hour, engine.raining);
   }
   if (s.mode === 'timed') {
     const before = Math.ceil(s.timeLeft);
