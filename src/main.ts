@@ -149,7 +149,8 @@ function applyPrefs(): void {
   const s = getSettings();
   engine.audio.setEnabled(s.sound, p.music);
   engine.audio.setVolume(s.volume);
-  speech.enabled = p.voice && s.sound;
+  // hlas je samostatné nastavení („Předčítání“), zvuk = efekty a hudba (QA C-13)
+  speech.enabled = p.voice;
   engine.hints = p.hints;
   engine.setLite(p.effects === 'lite' || document.documentElement.dataset.motion === 'reduce');
   engine.autopilot = p.autopilot && state !== 'start';

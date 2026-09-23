@@ -26,8 +26,8 @@ export function settingsExtra(save: Save, apply: () => void, onReset: () => void
       apply();
     }),
   );
-  const voiceHint = speech.available ? 'Po úlovku přečte název ryby česky' : 'Tento prohlížeč nemá český hlas – názvy se jen zobrazí';
-  const voice = toggle('ry-voice', 'Hlas', voiceHint, p.voice && speech.available, (v) => {
+  const voiceHint = speech.available ? 'Po úlovku přečte název ryby česky (i když je zvuk vypnutý)' : 'Tento prohlížeč nemá český hlas – názvy se jen zobrazí';
+  const voice = toggle('ry-voice', 'Předčítání', voiceHint, p.voice && speech.available, (v) => {
     p.voice = v;
     apply();
     if (v) speech.speak('Kapr obecný', { force: true });
