@@ -222,7 +222,9 @@ export class Engine {
   }
 
   private population(): number {
-    return Math.round(this.loc.population * clamp(this.world.w / 1000, 0.65, 1.45));
+    // podle plochy vody (vysoký tablet na výšku má víc vody než široký monitor)
+    const area = Math.sqrt((this.world.w * this.world.depth) / (1000 * 520));
+    return Math.round(this.loc.population * clamp(area, 0.65, 1.45));
   }
 
   private spawnFish(fromEdge: boolean): void {

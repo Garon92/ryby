@@ -16,6 +16,7 @@ export class Hud {
   private timerFg: SVGCircleElement;
   private scoreText: HTMLElement;
   private scorePill: HTMLElement;
+  private starsEl: HTMLElement;
   private coinsText: HTMLElement;
   private coinsPill: HTMLElement;
   private clockText: HTMLElement;
@@ -38,7 +39,8 @@ export class Hud {
     this.timerPill.append(this.timerText);
     this.timerFg = this.timerPill.querySelector('.fg') as SVGCircleElement;
     this.scoreText = h('b', null, '0');
-    this.scorePill = h('div', { class: 'pill', title: 'Body' }, h('span', { class: 'emo', 'aria-hidden': 'true' }, '🏅'), this.scoreText, h('span', { class: 'g92-sr-only' }, 'bodů'));
+    this.starsEl = h('span', { class: 'mini-stars', hidden: true });
+    this.scorePill = h('div', { class: 'pill', title: 'Body' }, h('span', { class: 'emo', 'aria-hidden': 'true' }, '🏅'), this.scoreText, h('span', { class: 'g92-sr-only' }, 'bodů'), this.starsEl);
     this.clockIcon = h('span', { class: 'emo', 'aria-hidden': 'true' }, '☀️');
     this.clockText = h('b', null, '7:00');
     const clockPill = h('div', { class: 'pill', title: 'Denní doba' }, this.clockIcon, this.clockText);
@@ -84,6 +86,17 @@ export class Hud {
   setScore(n: number, bump = false): void {
     this.scoreText.textContent = fmtNum(n);
     if (bump) this.bump(this.scorePill);
+  }
+
+  /** hvězdy výpravy (0–3); null = skrýt */
+  setStars(n: number | null): void {
+    if (n === null) {
+      this.starsEl.hidden = true;
+      return;
+    }
+    this.starsEl.hidden = false;
+    this.starsEl.innerHTML = [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('');
+    this.starsEl.setAttribute('aria-label', `${n} ze 3 hvězd`);
   }
 
   setCoins(n: number, bump = false): void {

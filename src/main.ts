@@ -22,6 +22,7 @@ import { Engine, type LostReason, type Phase } from './game/engine';
 import type { Fish } from './game/fish';
 import type { Mission } from './game/logic/missions';
 import { levelInfo } from './game/logic/progress';
+import { starsFor } from './game/logic/scoring';
 import { canClaim } from './game/logic/daily';
 import { albumProgress, applyCatch, applyPerfect, checkAchievements, ensureMissions, unlockedLocations } from './game/rewards';
 import type { Achievement } from './game/logic/achievements';
@@ -199,7 +200,7 @@ setLocationPreview((id) => {
 async function onStartChoice(c: StartChoice): Promise<void> {
   switch (c.kind) {
     case 'album':
-      await openAlbum(save);
+      await openAlbum(save, { focus: c.focus });
       startUi?.refresh();
       return;
     case 'shop':
@@ -262,6 +263,7 @@ async function startSession(): Promise<void> {
   hud.setTimed(p.mode === 'timed');
   hud.setTimer(TIMED_SECONDS, TIMED_SECONDS);
   hud.setScore(0);
+  hud.setStars(p.mode === 'timed' && !p.autopilot ? 0 : null);
   hud.setCombo(0);
   hud.setClock(engine.hour, rainy);
   clockShown = -1;
@@ -409,6 +411,15 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
     s.coins += out.coins;
   }
   hud.setScore(s.score, true);
+  if (s.mode === 'timed' && s.scoring) {
+    const before = starsFor(s.score - (s.scoring ? out.points.points : 0), s.difficulty);
+    const now = starsFor(s.score, s.difficulty);
+    hud.setStars(now);
+    if (now > before) {
+      hud.message(now === 3 ? 'Tři hvězdy! Jsi mistr!' : `${now}. hvězda!`, '⭐', 'good', 1800);
+      sfx.play('levelUp');
+    }
+  }
   hud.setCoins(save.coins, true);
   hud.setCombo(s.scoring ? s.combo : 0);
   hud.setMissions(save.missions);

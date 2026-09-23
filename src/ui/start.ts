@@ -11,6 +11,7 @@ import { computeWorld } from '../game/world';
 import type { ClockMode, Save } from '../store/save';
 import { fmtNum } from './common';
 import { COIN_SVG, coinHTML } from './icons';
+import { fishOfDayCard } from './fishOfDay';
 
 export const HOW_TO = [
   { icon: '👆', text: 'Ťukni do vody tam, kde plave ryba – rybář nahodí.' },
@@ -38,7 +39,8 @@ export const KEYS = [
 
 export type StartChoice =
   | { kind: 'play'; location: LocationId; mode: GameMode; clock: ClockMode; difficulty: Difficulty }
-  | { kind: 'album' | 'shop' | 'missions' | 'daily' };
+  | { kind: 'album'; focus?: string }
+  | { kind: 'shop' | 'missions' | 'daily' };
 
 const thumbCache = new Map<string, string>();
 
@@ -133,7 +135,9 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
 
   // hrdina (vlevo na širokých obrazovkách): hráč + lokality; ovládání (vpravo): obtížnost, režim, Hrát
   const hero = main.querySelector<HTMLElement>(':scope > .g92-overlay__hero');
-  if (hero) hero.append(strip, locSection);
+  const openFod = (id: string) => onChoice({ kind: 'album', focus: id });
+  let fod = fishOfDayCard(save, openFod);
+  if (hero) hero.append(strip, locSection, fod);
   else {
     (subtitle ?? main.firstChild)?.after(strip);
     (diffSection ?? actions).before(locSection);
@@ -275,6 +279,9 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
   }
 
   function refresh(): void {
+    const next = fishOfDayCard(save, openFod);
+    fod.replaceWith(next);
+    fod = next;
     renderStrip();
     renderLocations();
     renderBest();
