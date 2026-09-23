@@ -283,19 +283,39 @@ export class Engine {
     const h = Math.max(320, rect.height || window.innerHeight);
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const old = this.world;
+    // zanedbatelná změna (např. ResizeObserver hned po startu) – nic nepřepočítávat
+    if (old && keepFish !== true && Math.abs(old.w - w) < 1 && Math.abs(old.h - h) < 1 && old.dpr === dpr) return;
     this.canvas.width = Math.round(w * dpr);
     this.canvas.height = Math.round(h * dpr);
     this.world = computeWorld(w, h, dpr, this.loc);
     this.scene.resize(this.world);
     this.fx.surfaceY = this.world.surfaceY;
     if (old && keepFish !== true) {
-      const kx = this.world.w / old.w;
+      // vše přepočítat poměrově, aby otočení telefonu nebo schování lišty prohlížeče nezrušilo záběr
+      const nw = this.world;
+      const kx = nw.w / old.w;
+      const my = (y: number) => nw.surfaceY + ((y - old.surfaceY) / old.depth) * nw.depth;
       for (const f of this.fishes) {
         f.x *= kx;
-        f.y = this.world.surfaceY + ((f.y - old.surfaceY) / old.depth) * this.world.depth;
-        f.pickWanderTarget(this.world, randomRng);
+        f.y = my(f.y);
+        if (f.state === 'wander') f.pickWanderTarget(nw, randomRng);
+        else {
+          f.targetX *= kx;
+          f.targetY = my(f.targetY);
+        }
       }
-      if (this.phase !== 'idle') this.cancelLine();
+      this.bob.x *= kx;
+      this.hookX *= kx;
+      this.hookY = my(this.hookY);
+      this.castTo = { x: this.castTo.x * kx, y: my(this.castTo.y) };
+      this.hookPoint = { x: this.hookPoint.x * kx, y: my(this.hookPoint.y) };
+      this.landing.from = { x: this.landing.from.x * kx, y: my(this.landing.from.y) };
+      if (this.phase === 'casting') this.castFrom = { x: 0, y: 0 };
+      for (const b of this.bubbles) {
+        b.x *= kx;
+        b.y = my(b.y);
+      }
+      for (const d of this.ducks) d.x *= kx;
     }
   }
 
