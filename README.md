@@ -25,7 +25,9 @@ zasekneš a zdoláš rybu – a každý nový druh se uloží do **alba**, kter�
 - **Obchod:** pruty, splávky, návnady a klobouky pro rybáře.
 - **Chráněné ryby** se vyfotí do alba a pustí zpět do vody (hra to dítěti vysvětlí).
 - Ovládání **myší, dotykem i klávesnicí** (mezerník = nahodit / zaseknout / držet = navíjet, šipky = mířit,
-  B = návnada, Esc/P = pauza), celá obrazovka, auto-pauza při přepnutí záložky, světlý i tmavý vzhled.
+  B = návnada, Esc/P = pauza, M = zvuk, F = celá obrazovka), auto-pauza při přepnutí záložky, světlý i tmavý vzhled.
+- **Předčítání** názvů ryb českým hlasem je samostatný přepínač (zvuk v liště řídí jen efekty a hudbu);
+  tlačítko „Poslechnout“ v albu mluví vždy.
 
 ## Vývoj
 
