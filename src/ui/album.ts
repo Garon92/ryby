@@ -9,8 +9,10 @@ import { albumProgress } from '../game/rewards';
 import type { Save } from '../store/save';
 import { esc, fmtDate, gemsHTML, rarityHTML } from './common';
 import { openSheet, tabButton } from './sheet';
+import { ACHIEVEMENTS } from '../game/logic/achievements';
+import { coinHTML } from './icons';
 
-type Filter = 'all' | LocationId | 'caught';
+type Filter = 'all' | LocationId | 'caught' | 'trophies';
 
 const ORDER = [...SPECIES].sort((a, b) => a.name.localeCompare(b.name, 'cs'));
 
@@ -58,6 +60,7 @@ export function openAlbum(save: Save, opts: { focus?: string; filter?: Filter } 
     ORDER.filter((s) => {
       if (filter === 'all') return true;
       if (filter === 'caught') return !!save.album[s.id];
+      if (filter === 'trophies') return false;
       return s.locations.includes(filter);
     });
 
@@ -76,12 +79,36 @@ export function openAlbum(save: Save, opts: { focus?: string; filter?: Filter } 
       add(l.id, `${l.icon} ${l.name} ${p.caught}/${p.total}`);
     }
     add('caught', '✅ Chycené');
+    add('trophies', `🏆 Trofeje ${save.achievements.length}/${ACHIEVEMENTS.length}`);
+  }
+
+  function showTrophies(): void {
+    const body = sheet.body;
+    body.textContent = '';
+    const grid = h('div', { class: 'trophy-grid' });
+    for (const a of ACHIEVEMENTS) {
+      const got = save.achievements.includes(a.id);
+      const p = got ? 1 : a.progress(save, SPECIES);
+      grid.append(
+        h(
+          'div',
+          { class: `trophy-card${got ? ' is-got' : ''}` },
+          h('span', { class: 'ico', 'aria-hidden': 'true' }, a.icon),
+          h('b', null, a.name),
+          h('small', null, a.text),
+          h('div', { class: `g92-progress g92-progress--sm${got ? ' g92-progress--success' : ''}`, style: `--value:${p}`, 'aria-label': `Splněno ${Math.round(p * 100)} %` }),
+          h('span', { class: 'rew', html: got ? '✓ Získáno' : `+${a.reward} ${coinHTML}` }),
+        ),
+      );
+    }
+    body.append(grid);
   }
 
   function showGrid(): void {
     detail = null;
     speech.stop();
     renderTabs();
+    if (filter === 'trophies') return showTrophies();
     const list = visible();
     const body = sheet.body;
     body.textContent = '';

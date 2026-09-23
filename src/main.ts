@@ -22,7 +22,8 @@ import type { Fish } from './game/fish';
 import type { Mission } from './game/logic/missions';
 import { levelInfo } from './game/logic/progress';
 import { canClaim } from './game/logic/daily';
-import { albumProgress, applyCatch, applyPerfect, ensureMissions, unlockedLocations } from './game/rewards';
+import { albumProgress, applyCatch, applyPerfect, checkAchievements, ensureMissions, unlockedLocations } from './game/rewards';
+import type { Achievement } from './game/logic/achievements';
 import { speech } from './game/speech';
 import { TIMED_SECONDS, type CatchEvent, type Difficulty, type GameMode } from './game/types';
 import { persist, resetSave, save } from './store';
@@ -65,6 +66,7 @@ interface Session {
   completed: Mission[];
   levelUps: { level: number; title: string }[];
   unlocked: string[];
+  trophies: Achievement[];
   fights: number;
   waits: number;
   scoring: boolean;
@@ -87,6 +89,11 @@ const engine = new Engine(canvas, {
     if (state === 'play') void pause();
   },
   onTick: (dt) => tick(dt),
+  onRare: (f) => {
+    if (state !== 'play' || engine.autopilot) return;
+    hud.message(f.rainbow ? 'Připlula duhová ryba!' : 'Připlula vzácná ryba!', f.rainbow ? '🌈' : '✨', 'good', 2400);
+    sfx.tone({ freq: 1320, to: 1760, dur: 0.25, type: 'sine', gain: 0.4 });
+  },
 });
 const hud = new Hud(stage);
 hud.onBait = (b) => setBait(b);
@@ -102,6 +109,7 @@ function applyPrefs(): void {
   engine.setLite(p.effects === 'lite' || document.documentElement.dataset.motion === 'reduce');
   engine.autopilot = p.autopilot && state !== 'start';
   engine.gear = { ...save.equipped };
+  engine.known = new Set(Object.keys(save.album));
   hud.setBait(save.equipped.bait, save.owned.bait);
   hud.setCoins(save.coins);
   hud.setMissions(save.missions);
@@ -167,6 +175,7 @@ let dailyOffered = false;
 
 function onDailyClaim(coins: number): void {
   toast(`Denní odměna: +${coins} mincí!`, { variant: 'success', icon: COIN_SVG });
+  announceTrophies(checkAchievements(save));
   persist(true);
   startUi?.refresh();
   hud.setCoins(save.coins, true);
@@ -230,6 +239,7 @@ async function startSession(): Promise<void> {
     completed: [],
     levelUps: [],
     unlocked: [],
+    trophies: [],
     fights: 0,
     waits: 0,
     scoring: !p.autopilot,
@@ -325,8 +335,20 @@ function onPerfect(): void {
   if (!session?.scoring) return;
   const done = applyPerfect(save, Math.random);
   announceMissions(done);
+  announceTrophies(checkAchievements(save));
   hud.setMissions(save.missions);
   persist();
+}
+
+function announceTrophies(list: Achievement[]): void {
+  if (!list.length) return;
+  for (const a of list) {
+    session?.trophies.push(a);
+    if (session) session.coins += a.reward;
+    toast(`Trofej: ${a.icon} ${a.name}! +${a.reward} mincí`, { variant: 'accent', icon: UI_ICONS.trophy, duration: 4200 });
+  }
+  setTimeout(() => sfx.win(), 250);
+  hud.setCoins(save.coins, true);
 }
 
 function announceMissions(done: Mission[]): void {
@@ -365,6 +387,7 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
     s.scoring,
   );
   s.catches.push(out.event);
+  engine.known = new Set(Object.keys(save.album));
   if (s.scoring) {
     s.score += out.points.points;
     s.coins += out.coins;
@@ -375,6 +398,7 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
   hud.setMissions(save.missions);
   if (s.combo >= 2 && s.scoring) sfx.play('coin');
   announceMissions(out.completed);
+  announceTrophies(out.achievements);
   if (out.levelAfter > out.levelBefore) {
     const info = levelInfo(save.xp);
     s.levelUps.push({ level: info.level, title: info.title });
@@ -515,6 +539,7 @@ async function endSession(): Promise<void> {
     completed: s.completed,
     levelUps: s.levelUps,
     unlocked: s.unlocked,
+    trophies: s.trophies,
     seconds: s.elapsed,
     scoring: s.scoring,
   });
@@ -631,6 +656,8 @@ new ResizeObserver(() => engine.resize()).observe(stage);
 // ————————————————————————————————— start —————————————————————————————————
 
 ensureMissions(save, Math.random);
+// trofeje za postup z dřívějška (např. po migraci) – oznámit po startu
+setTimeout(() => announceTrophies(checkAchievements(save)), 1200);
 engine.setLocation(unlockedLocations(save).includes(save.prefs.location) ? save.prefs.location : 'rybnik');
 applyPrefs();
 engine.start();

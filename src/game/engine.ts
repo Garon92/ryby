@@ -47,6 +47,8 @@ export interface EngineEvents {
   onHidden(): void;
   /** každý snímek hry (ne v ukázkovém režimu, ne v pauze) */
   onTick?(dt: number): void;
+  /** připlula vzácná ryba (rarita 4–5) */
+  onRare?(fish: Fish): void;
 }
 
 interface Bubble {
@@ -120,6 +122,8 @@ export class Engine {
   private queuedCast: { x: number; y: number } | null = null;
   private landing = { from: { x: 0, y: 0 }, t: 0 };
   aim: { x: number; y: number } | null = null;
+  /** druhy, které už hráč zná (jmenovka při najetí myší); ostatní jsou „???“ */
+  known: ReadonlySet<string> = new Set();
   /** klávesnicové míření (když není myš) */
   keyAim = { x: 0.55, y: 0.5 };
   private idleT = 0;
@@ -213,6 +217,7 @@ export class Engine {
     const f = new Fish(s, cm, trophy, Math.random() < RAINBOW_CHANCE, this.world, randomRng, fromEdge);
     f.pickWanderTarget(this.world, randomRng);
     this.fishes.push(f);
+    if (fromEdge && !this.attract && (s.rarity >= 4 || f.rainbow)) this.events.onRare?.(f);
   }
 
   // ————————————————————————————————— smyčka —————————————————————————————————
@@ -1126,6 +1131,18 @@ export class Engine {
         x.fill();
         x.restore();
       }
+      // jmenovka ryby pod myší
+      if (this.aim) {
+        const hit = this.fishes.find((f) => {
+          if (f.state === 'hooked' || f.state === 'landing' || f.alpha < 0.6) return false;
+          const fw = f.widthPx(w) * 0.5;
+          const fh = f.heightPx(w) * 0.5;
+          const dx = (this.aim!.x - f.x) / fw;
+          const dy = (this.aim!.y - f.y) / fh;
+          return dx * dx + dy * dy < 1;
+        });
+        if (hit) this.drawNameTag(x, hit);
+      }
       // nápověda: šipka nad vhodnou rybou
       if (this.hints && this.idleT > 4) {
         const f = this.hintFish();
@@ -1173,6 +1190,27 @@ export class Engine {
       x.restore();
     }
     if (this.phase === 'fight' && this.fight) this.drawGauge(x, this.fight);
+  }
+
+  private drawNameTag(x: CanvasRenderingContext2D, f: Fish): void {
+    const w = this.world;
+    const s = Math.max(0.85, w.scale);
+    const known = this.known.has(f.species.id);
+    const label = known ? `${f.species.name} · ${f.sizeCm} cm` : '??? – ještě ji nemáš v albu';
+    x.save();
+    x.font = `800 ${Math.round(14 * s)}px Nunito, system-ui, sans-serif`;
+    const tw = x.measureText(label).width + 20 * s;
+    const th = 26 * s;
+    const tx = clamp(f.x - tw / 2, 6, w.w - tw - 6);
+    const ty = Math.max(w.surfaceY + 4, f.y - f.heightPx(w) * 0.55 - th - 6 * s);
+    x.fillStyle = known ? 'rgba(10,40,60,0.82)' : 'rgba(80,40,110,0.82)';
+    roundRect(x, tx, ty, tw, th, th / 2);
+    x.fill();
+    x.fillStyle = '#fff';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    x.fillText(label, tx + tw / 2, ty + th / 2 + 1);
+    x.restore();
   }
 
   private hintFish(): Fish | null {

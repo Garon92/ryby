@@ -1,6 +1,7 @@
 import { h, showResults } from '../kit';
 import { getSpecies } from '../data/species';
 import type { Mission } from '../game/logic/missions';
+import type { Achievement } from '../game/logic/achievements';
 import { starsFor } from '../game/logic/scoring';
 import { fishThumbUrl } from '../game/sprites';
 import type { CatchEvent, Difficulty, GameMode } from '../game/types';
@@ -19,6 +20,7 @@ export interface SessionSummary {
   completed: Mission[];
   levelUps: { level: number; title: string }[];
   unlocked: string[];
+  trophies: Achievement[];
   seconds: number;
   scoring: boolean;
 }
@@ -70,6 +72,7 @@ export function openResults(sum: SessionSummary): Promise<string> {
   for (const m of sum.completed) extra.append(h('div', null, `🎯 Mise splněna: ${missionText(m).text} (+${m.reward} mincí)`));
   for (const l of sum.levelUps) extra.append(h('div', null, `⬆️ Nová úroveň ${l.level}: ${l.title}!`));
   for (const u of sum.unlocked) extra.append(h('div', null, `🔓 Odemčeno nové místo: ${u}!`));
+  for (const t of sum.trophies) extra.append(h('div', null, `🏆 Nová trofej: ${t.icon} ${t.name} (+${t.reward} mincí)`));
   if (!sum.scoring) extra.append(h('div', null, '🤖 Autopilot: ryby jsou v albu, body a mince se nepočítají.'));
   if (extra.childElementCount) p.el.querySelector('.g92-overlay__actions')?.before(extra);
   return p;

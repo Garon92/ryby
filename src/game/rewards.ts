@@ -2,6 +2,7 @@ import { LOCATIONS } from '../data/locations';
 import { SPECIES, type LocationId, type Species } from '../data/species';
 import { findItem, type BaitId, type ShopCategory } from '../data/shop';
 import type { Save } from '../store/save';
+import { newlyUnlocked, type Achievement } from './logic/achievements';
 import { claimDaily } from './logic/daily';
 import { applyMissionEvent, fillMissions, isDone, type Mission, type MissionEvent } from './logic/missions';
 import { levelInfo } from './logic/progress';
@@ -33,6 +34,18 @@ export interface CatchOutcome {
   completed: Mission[];
   /** chráněný druh → po vyfocení zpět do vody */
   released: boolean;
+  /** nově získané trofeje */
+  achievements: Achievement[];
+}
+
+/** Zkontroluje trofeje, nové zapíše a vyplatí. */
+export function checkAchievements(save: Save): Achievement[] {
+  const got = newlyUnlocked(save, SPECIES);
+  for (const a of got) {
+    save.achievements.push(a.id);
+    save.coins += a.reward;
+  }
+  return got;
 }
 
 export function unlockedLocations(save: Save): LocationId[] {
@@ -102,6 +115,7 @@ export function applyCatch(save: Save, input: CatchInput, now: Date, rng: Rng, s
     ...(entry?.trophy || input.trophy ? { trophy: true } : {}),
   };
   save.stats.catches += 1;
+  if (input.night) save.stats.nightCatches += 1;
   if (s.protected) save.stats.released += 1;
   if (!save.stats.biggest || input.sizeCm > save.stats.biggest.cm) save.stats.biggest = { id: s.id, cm: input.sizeCm };
   const event: CatchEvent = {
@@ -120,7 +134,9 @@ export function applyCatch(save: Save, input: CatchInput, now: Date, rng: Rng, s
     coins,
   };
   const completed = scoring ? progressMissions(save, { type: 'catch', ev: event, combo: input.combo }, rng) : [];
+  const achievements = scoring ? checkAchievements(save) : [];
   return {
+    achievements,
     event,
     points,
     coins,

@@ -45,6 +45,7 @@ export interface Stats {
   snapped: number;
   escaped: number;
   released: number;
+  nightCatches: number;
   playSeconds: number;
   biggest: { id: string; cm: number } | null;
   /** rekord z původní verze hry (jiné bodování, bez časového limitu) */
@@ -65,6 +66,8 @@ export interface Save {
   daily: DailyState;
   stats: Stats;
   prefs: Prefs;
+  /** získané trofeje (id) */
+  achievements: string[];
 }
 
 export function defaultSave(): Save {
@@ -86,10 +89,12 @@ export function defaultSave(): Save {
       snapped: 0,
       escaped: 0,
       released: 0,
+      nightCatches: 0,
       playSeconds: 0,
       biggest: null,
       legacyBestScore: 0,
     },
+    achievements: [],
     prefs: {
       location: 'rybnik',
       mode: 'timed',
@@ -178,6 +183,7 @@ export function normalizeSave(raw: unknown): Save {
     s.stats.snapped = num(st.snapped);
     s.stats.escaped = num(st.escaped);
     s.stats.released = num(st.released);
+    s.stats.nightCatches = num(st.nightCatches);
     s.stats.playSeconds = num(st.playSeconds);
     s.stats.legacyBestScore = num(st.legacyBestScore);
     if (isObj(st.biggest) && typeof st.biggest.id === 'string') s.stats.biggest = { id: st.biggest.id, cm: num(st.biggest.cm) };
@@ -197,6 +203,7 @@ export function normalizeSave(raw: unknown): Save {
     s.prefs.unlockAll = bool(p.unlockAll, false);
     s.prefs.seenHelp = bool(p.seenHelp, false);
   }
+  s.achievements = uniq(strArr(raw.achievements));
   return s;
 }
 
