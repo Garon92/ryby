@@ -1,177 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="cs">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎣 Rybářská hra - České ryby</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='48'%3E%F0%9F%8E%A3%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="game-container">
-        <div class="header">
-            <h1>🎣 Rybářská hra</h1>
-            <div class="score-board">
-                <div class="score">Skóre: <span id="score">0</span></div>
-                <div class="fish-count">Ryby: <span id="fishCount">0</span></div>
-                <div class="best-score">🏆 <span id="bestScore">0</span></div>
-                <div class="coins">⭐ <span id="coins">0</span></div>
-            </div>
-            <div class="ui-buttons">
-                <button class="icon-btn" id="toggleSound" title="Zvuk" aria-label="Zvuk">
-                    <span id="soundIcon">🔊</span>
-                </button>
-                <button class="icon-btn" id="togglePause" title="Pauza" aria-label="Pauza">
-                    <span id="pauseIcon">⏸️</span>
-                </button>
-                <button class="icon-btn" id="toggleMusic" title="Hudba" aria-label="Hudba">
-                    <span id="musicIcon">🎵</span>
-                </button>
-                <button class="icon-btn" id="toggleSandbox" title="Dětský režim (Sandbox)" aria-label="Dětský režim">
-                    <span>🧸</span>
-                </button>
-                <button class="icon-btn" id="toggleAutopilot" title="Autopilot" aria-label="Autopilot">
-                    <span>🤖</span>
-                </button>
-                <button class="icon-btn" id="toggleTimer" title="Minutový souhrn" aria-label="Minutový souhrn">
-                    <span>⏱️</span>
-                </button>
-                <button class="icon-btn" id="toggleRareMG" title="Vzácné ryby – minihra" aria-label="Vzácné ryby – minihra">
-                    <span>🎮</span>
-                </button>
-                <button class="icon-btn" id="openAlbum" title="Album" aria-label="Album">
-                    <span>📖</span>
-                </button>
-                <button class="icon-btn" id="cycleSkin" title="Skin prutu" aria-label="Skin prutu">
-                    <span>🎨</span>
-                </button>
-                <button class="icon-btn" id="dailyReward" title="Odměna" aria-label="Odměna">
-                    <span>🎁</span>
-                </button>
-                <button class="icon-btn" id="openPrefs" title="Nastavení" aria-label="Nastavení">
-                    <span>⚙️</span>
-                </button>
-                <button class="icon-btn" id="openPhoto" title="Foto režim" aria-label="Foto režim">
-                    <span>📷</span>
-                </button>
-            </div>
-        </div>
-        
-        <div class="game-area">
-            <canvas id="gameCanvas" width="1200" height="600"></canvas>
-            <div class="vignette"></div>
-            <div class="fisherman" id="fisherman">
-                <div class="arms"></div>
-                <div class="legs"></div>
-                <div class="rod"></div>
-                <div class="line" id="fishingLine"></div>
-                <div class="hook" id="hook"></div>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <p aria-hidden="true" title="Ovládání">🖱️ ➡️ 🎣 | 👆 💦 | ⭐️🎉</p>
-        </div>
-        
-        <div class="info-panel" id="infoPanel">
-            <h3>Poslední úlovek:</h3>
-            <div id="lastCatch">
-                <p>Ještě jste nechytili žádnou rybu!</p>
-            </div>
-        </div>
-
-        <div class="missions-panel" id="missionsPanel" aria-hidden="false"></div>
-
-        <!-- Minihra zdolávání -->
-        <div id="reelOverlay" class="reel-overlay" aria-hidden="true">
-            <div class="reel-content">
-                <div class="reel-emoji">🎣</div>
-                <div class="reel-bar">
-                    <div class="reel-goal" id="reelGoal"></div>
-                    <div class="reel-progress" id="reelProgress"></div>
-                </div>
-                <div class="reel-hint" aria-hidden="true">👉👆</div>
-            </div>
-        </div>
-
-        <!-- Album (Rybopedie) modal pro děti - pouze obrázky -->
-        <div id="albumModal" class="album-modal" aria-hidden="true">
-            <div class="album-content">
-                <div class="album-header">
-                    <span class="album-title" aria-hidden="true">📖</span>
-                    <button class="icon-btn close" id="closeAlbum" aria-label="Zavřít">✖️</button>
-                </div>
-                <div id="albumGrid" class="album-grid"></div>
-            </div>
-        </div>
-
-        <!-- Obchod se skiny prutu -->
-        <div id="skinModal" class="shop-modal" aria-hidden="true">
-            <div class="shop-content">
-                <div class="shop-header">
-                    <span class="shop-title" aria-hidden="true">🎨</span>
-                    <button class="icon-btn close" id="closeSkin" aria-label="Zavřít">✖️</button>
-                </div>
-                <div id="skinGrid" class="shop-grid"></div>
-            </div>
-        </div>
-
-        <!-- Denní odměna -->
-        <div id="rewardModal" class="reward-modal" aria-hidden="true">
-            <div class="reward-card">
-                <div class="reward-emoji">🎁</div>
-                <div class="reward-amount" id="rewardAmount">⭐ +0</div>
-                <div style="margin-top:10px;">
-                    <button class="icon-btn" id="closeReward" aria-label="Zavřít">✅</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Startovní odpočet -->
-        <div id="countdown" class="countdown-overlay" aria-hidden="true">
-            <div class="countdown-number" id="countdownNumber">3</div>
-        </div>
-
-        <!-- Panel preferencí (ikonové přepínače) -->
-        <div id="prefsModal" class="prefs-modal" aria-hidden="true">
-            <div class="prefs-card">
-                <div class="prefs-grid">
-                    <button class="toggle-btn" data-key="sound" title="Zvuky">🔊</button>
-                    <button class="toggle-btn" data-key="music" title="Hudba">🎵</button>
-                    <button class="toggle-btn" data-key="vignette" title="Vinětace">🖼️</button>
-                    <button class="toggle-btn" data-key="sparkles" title="Třpytky">✨</button>
-                    <button class="toggle-btn" data-key="silhouettes" title="Siluety">🐠</button>
-                    <button class="toggle-btn" data-key="rays" title="Paprsky">☀️</button>
-                    <button class="toggle-btn" data-key="particles" title="Prach">🍃</button>
-                    <button class="toggle-btn" data-key="sandbox" title="Sandbox mód">🧸</button>
-                    <button class="toggle-btn" data-key="autopilot" title="Autopilot">🤖</button>
-                    <button class="toggle-btn" data-key="hints" title="Nápověda šipkou">🎯</button>
-                </div>
-                <div class="prefs-actions">
-                    <button class="icon-btn" id="closePrefs" aria-label="Zavřít">✅</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Souhrn po 60s -->
-        <div id="summaryModal" class="summary-modal" aria-hidden="true">
-            <div class="summary-card">
-                <div class="summary-row"><span>🐟</span><span id="sumFish">0</span></div>
-                <div class="summary-row"><span>⭐</span><span id="sumCoins">0</span></div>
-                <div class="summary-row"><span>🏅</span><span id="sumPoints">0</span></div>
-                <div class="summary-actions"><button class="icon-btn" id="summaryContinue" aria-label="Pokračovat">▶️</button></div>
-            </div>
-        </div>
-
-        <!-- Foto režim: jen malé tlačítko pro návrat -->
-        <div id="photoOverlay" class="photo-overlay" aria-hidden="true">
-            <button class="icon-btn close-photo" id="closePhoto" aria-label="Zpět">✅</button>
-        </div>
-
-        <!-- Vložená data ryb (pro běh bez serveru) -->
-        <script type="application/json" id="fishData">[ {"name":"Amur Bílý","image":"amur_bily.jpg","size_min":50,"size_max":80,"rarity":7},{"name":"Bolen Dravý","image":"bolen_dravy.jpg","size_min":40,"size_max":70,"rarity":7},{"name":"Candát Obecný","image":"candat_obecny.jpg","size_min":40,"size_max":70,"rarity":9},{"name":"Candát Východní","image":"candat_vychodni.jpg","size_min":20,"size_max":30,"rarity":9},{"name":"Cejn Perleťový","image":"cejn_perletovy.jpg","size_min":15,"size_max":30,"rarity":10},{"name":"Cejn Siný","image":"cejn_siny.jpg","size_min":30,"size_max":55,"rarity":3},{"name":"Cejn Velký","image":"cejn_velky.jpg","size_min":30,"size_max":45,"rarity":6},{"name":"Cejnek Malý","image":"cejnek_maly.jpg","size_min":15,"size_max":30,"rarity":5},{"name":"Drsek Menší","image":"drsek_mensi.jpg","size_min":14,"size_max":16,"rarity":8},{"name":"Hlavačka Mramorovaná","image":"hlavacka_mramorovana.jpg","size_min":4,"size_max":6,"rarity":4},{"name":"Hlavatka Obecná ( Podunajská )","image":"hlavatka_obecna_podunajska.jpg","size_min":60,"size_max":100,"rarity":7},{"name":"Hořavka Duhová","image":"horavka_duhova.jpg","size_min":5,"size_max":8,"rarity":4},{"name":"Hrouzek Kesslerův","image":"hrouzek_kessleruv.jpg","size_min":8,"size_max":11,"rarity":10},{"name":"Hrouzek Obecný","image":"hrouzek_obecny.jpg","size_min":8,"size_max":14,"rarity":3},{"name":"Jelec Jesen","image":"jelec_jesen.jpg","size_min":25,"size_max":40,"rarity":8},{"name":"Jelec Proudník","image":"jelec_proudnik.jpg","size_min":15,"size_max":25,"rarity":4},{"name":"Jelec Tloušť","image":"jelec_tloust.jpg","size_min":25,"size_max":45,"rarity":3},{"name":"Jeseter Malý","image":"jeseter_maly.jpg","size_min":40,"size_max":60,"rarity":9},{"name":"Ježdík Obecný","image":"jezdik_obecny.jpg","size_min":8,"size_max":15,"rarity":3},{"name":"Ježdík Žlutý","image":"jezdik_zluty.jpg","size_min":15,"size_max":20,"rarity":6},{"name":"Kapr Obecný","image":"kapr_obecny.jpg","size_min":40,"size_max":65,"rarity":5},{"name":"Karas Obecný","image":"karas_obecny.jpg","size_min":15,"size_max":30,"rarity":2},{"name":"Karas Stříbřitý","image":"karas_stribrity.jpg","size_min":15,"size_max":30,"rarity":3},{"name":"Koljuška Tříostná","image":"koljuska_triostna.jpg","size_min":4,"size_max":7,"rarity":1},{"name":"Lín Obecný","image":"lin_obecny.jpg","size_min":20,"size_max":35,"rarity":5},{"name":"Lipan Podhorní","image":"lipan_podhorni.jpg","size_min":25,"size_max":40,"rarity":7},{"name":"Losos Obecný","image":"losos_obecny.jpg","size_min":60,"size_max":100,"rarity":9},{"name":"Mihule Potoční","image":"mihule_potocni.jpg","size_min":10,"size_max":20,"rarity":8},{"name":"Mník Jednovousý","image":"mnik_jednovousy.jpg","size_min":30,"size_max":45,"rarity":9},{"name":"Mřenka Mramorovaná","image":"mrenka_mramorovana.jpg","size_min":8,"size_max":12,"rarity":4},{"name":"Okoun Říční","image":"okoun_ricni.jpg","size_min":10,"size_max":18,"rarity":2},{"name":"Okounek Pstruhový","image":"okounek_pstruhovy.jpg","size_min":30,"size_max":40,"rarity":6},{"name":"Ostroretka Stěhovavá","image":"ostroretka_stehovava.jpg","size_min":25,"size_max":40,"rarity":8},{"name":"Ostrucha Křivočará","image":"ostrucha_krivocara.jpg","size_min":20,"size_max":40,"rarity":9},{"name":"Ouklej Obecná","image":"ouklej_obecna.jpg","size_min":10,"size_max":20,"rarity":2},{"name":"Ouklejka Pruhovaná","image":"ouklejka_pruhovana.jpg","size_min":8,"size_max":13,"rarity":4},{"name":"Parma Obecná ( Říční )","image":"parma_obecna_ricni.jpg","size_min":40,"size_max":60,"rarity":6},{"name":"Perlín Ostrobřichý","image":"perlin_ostrobrichy.jpg","size_min":15,"size_max":30,"rarity":3},{"name":"Piskoř Pruhovaný","image":"piskor_pruhovany.jpg","size_min":15,"size_max":25,"rarity":7},{"name":"Plotice Obecná","image":"plotice_obecna.jpg","size_min":15,"size_max":30,"rarity":1},{"name":"Podoustev Říční","image":"podoustev_ricni.jpg","size_min":20,"size_max":40,"rarity":6},{"name":"Pstruh Duhový ( Americký )","image":"pstruh_duhovy_americky.jpg","size_min":25,"size_max":40,"rarity":5},{"name":"Pstruh Obecný ( Potoční )","image":"pstruh_obecny_potocni.jpg","size_min":20,"size_max":40,"rarity":6},{"name":"Sekavčík Horský","image":"sekavcik_horsky.jpg","size_min":8,"size_max":11,"rarity":8},{"name":"Sekavec Podunajský","image":"sekavec_podunajsky.jpg","size_min":8,"size_max":11,"rarity":9},{"name":"Síh Maréna ( Severní )","image":"sih_marena_severni.jpg","size_min":35,"size_max":45,"rarity":7},{"name":"Síh Peleď","image":"sih_peled.jpg","size_min":30,"size_max":45,"rarity":8},{"name":"Siven Americký","image":"siven_americky.jpg","size_min":20,"size_max":35,"rarity":7},{"name":"Slunečnice Pestrá","image":"slunecnice_pestra.jpg","size_min":10,"size_max":16,"rarity":5},{"name":"Slunka Obecná ( Stříbřitá )","image":"slunka_obecna_stribrita.jpg","size_min":3,"size_max":6,"rarity":1},{"name":"Střevle Potoční","image":"strevle_potocni.jpg","size_min":5,"size_max":8,"rarity":6},{"name":"Střevlička Východní","image":"strevlicka_vychodni.jpg","size_min":3,"size_max":6,"rarity":3},{"name":"Sumec Velký","image":"sumec_velky.jpg","size_min":80,"size_max":160,"rarity":9},{"name":"Sumeček Americký","image":"sumecek_americky.jpg","size_min":18,"size_max":28,"rarity":7},{"name":"Štika Obecná","image":"stika_obecna.jpg","size_min":40,"size_max":70,"rarity":4},{"name":"Tolstolobec Pestrý","image":"tolstolobec_pestry.jpg","size_min":60,"size_max":90,"rarity":7},{"name":"Tolstolobik Bílý","image":"tolstolobik_bily.jpg","size_min":60,"size_max":90,"rarity":7},{"name":"Úhoř Říční","image":"uhor_ricni.jpg","size_min":50,"size_max":80,"rarity":8},{"name":"Vranka Obecná","image":"vranka_obecna.jpg","size_min":8,"size_max":12,"rarity":5} ]</script>
-    </div>
-    
-    <script src="game.js"></script>
-</body>
-</html> 
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="description" content="Rybářská hra pro děti: nahoď prut, chytej české ryby v rybníce, řece, potoce i na přehradě a sbírej je do alba." />
+    <link rel="icon" href="/ryby/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/ryby/apple-touch-icon.png" />
+    <title>Ryby – rybářská hra</title>
+  </head>
+  <body class="g92-app ryby">
+    <g92-appbar app="ryby" fullscreen help></g92-appbar>
+    <main id="stage" class="stage is-attract">
+      <canvas id="scene" class="g92-no-touch-scroll" aria-label="Rybník s rybami – ťukni do vody a nahoď prut"></canvas>
+    </main>
+    <noscript>Hra potřebuje zapnutý JavaScript.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

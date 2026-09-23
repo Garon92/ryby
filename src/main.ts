@@ -1,0 +1,646 @@
+import './kit/kit.css';
+import './styles/app.css';
+import {
+  autoPause,
+  confetti,
+  countdown,
+  getSettings,
+  h,
+  openSettingsDialog,
+  recordActivity,
+  sfx,
+  showPause,
+  subscribeSettings,
+  toast,
+  UI_ICONS,
+} from './kit';
+import { LOCATION_BY_ID } from './data/locations';
+import { SPECIES, type LocationId } from './data/species';
+import { BAITS, type BaitId } from './data/shop';
+import { Engine, type LostReason, type Phase } from './game/engine';
+import type { Fish } from './game/fish';
+import type { Mission } from './game/logic/missions';
+import { levelInfo } from './game/logic/progress';
+import { canClaim } from './game/logic/daily';
+import { albumProgress, applyCatch, applyPerfect, ensureMissions, unlockedLocations } from './game/rewards';
+import { speech } from './game/speech';
+import { TIMED_SECONDS, type CatchEvent, type Difficulty, type GameMode } from './game/types';
+import { persist, resetSave, save } from './store';
+import { openAlbum } from './ui/album';
+import { COIN_SVG } from './ui/icons';
+import { showCatchCard, showMiniCatch } from './ui/catchCard';
+import { openDaily, openMissions } from './ui/dialogs';
+import { Hud } from './ui/hud';
+import { openResults } from './ui/results';
+import { settingsExtra } from './ui/settings';
+import { openShop } from './ui/shop';
+import { openStart, recordKey, setLocationPreview, type StartChoice } from './ui/start';
+import type { ClockMode } from './store/save';
+
+// ————————————————————————————————— DOM —————————————————————————————————
+
+const appbar = document.querySelector('g92-appbar') as HTMLElement;
+const stage = document.getElementById('stage') as HTMLElement;
+const canvas = document.getElementById('scene') as HTMLCanvasElement;
+const pauseBtn = h('button', { type: 'button', slot: 'actions', class: 'g92-btn g92-btn--ghost g92-btn--icon', 'aria-label': 'Pauza (Esc)', title: 'Pauza', html: UI_ICONS.pause, hidden: true });
+appbar.prepend(pauseBtn);
+
+type State = 'start' | 'play' | 'pause' | 'card' | 'results' | 'photo';
+let state: State = 'start';
+
+// ————————————————————————————————— engine + hud —————————————————————————————————
+
+interface Session {
+  location: LocationId;
+  mode: GameMode;
+  clock: ClockMode;
+  difficulty: Difficulty;
+  timeLeft: number;
+  elapsed: number;
+  score: number;
+  coins: number;
+  catches: CatchEvent[];
+  combo: number;
+  lastCatchAt: number;
+  completed: Mission[];
+  levelUps: { level: number; title: string }[];
+  unlocked: string[];
+  fights: number;
+  waits: number;
+  scoring: boolean;
+}
+
+let session: Session | null = null;
+
+const engine = new Engine(canvas, {
+  onPhase: (p) => onPhase(p),
+  onCatch: (f, meta) => void onCatch(f, meta.perfect, meta.night),
+  onLost: (r) => onLost(r),
+  onPerfect: () => onPerfect(),
+  onTreasure: (c) => {
+    save.coins += c;
+    if (session) session.coins += c;
+    hud.setCoins(save.coins, true);
+    persist();
+  },
+  onHidden: () => {
+    if (state === 'play') void pause();
+  },
+  onTick: (dt) => tick(dt),
+});
+const hud = new Hud(stage);
+hud.onBait = (b) => setBait(b);
+hud.onMissions = () => openMissions(save);
+
+function applyPrefs(): void {
+  const p = save.prefs;
+  const s = getSettings();
+  engine.audio.setEnabled(s.sound, p.music);
+  engine.audio.setVolume(s.volume);
+  speech.enabled = p.voice && s.sound;
+  engine.hints = p.hints;
+  engine.setLite(p.effects === 'lite' || document.documentElement.dataset.motion === 'reduce');
+  engine.autopilot = p.autopilot && state !== 'start';
+  engine.gear = { ...save.equipped };
+  hud.setBait(save.equipped.bait, save.owned.bait);
+  hud.setCoins(save.coins);
+  hud.setMissions(save.missions);
+  persist();
+}
+subscribeSettings(() => applyPrefs());
+
+function setBait(b: BaitId): void {
+  if (!save.owned.bait.includes(b)) return;
+  save.equipped.bait = b;
+  engine.setBait(b);
+  hud.setBait(b, save.owned.bait);
+  const it = BAITS.find((x) => x.id === b);
+  if (it && state === 'play') hud.message(`Návnada: ${it.name}`, it.icon, '', 1400);
+  persist();
+}
+
+function cycleBait(): void {
+  const owned = BAITS.filter((b) => save.owned.bait.includes(b.id as BaitId));
+  const i = owned.findIndex((b) => b.id === save.equipped.bait);
+  const next = owned[(i + 1) % owned.length];
+  if (next) {
+    sfx.tap();
+    setBait(next.id as BaitId);
+  }
+}
+
+function reportActivity(): void {
+  const alb = albumProgress(save);
+  const lvl = levelInfo(save.xp).level;
+  recordActivity('ryby', { metric: { label: 'Album', value: `${alb.caught}/${alb.total}` }, progress: alb.caught / alb.total, note: `Úroveň ${lvl}` });
+}
+
+// ————————————————————————————————— start —————————————————————————————————
+
+let startUi: { refresh: () => void } | null = null;
+
+function showHome(): void {
+  state = 'start';
+  session = null;
+  engine.attract = true;
+  engine.autopilot = false;
+  engine.setPaused(false);
+  engine.audio.setQuiet(true);
+  engine.difficulty = 'easy';
+  hud.show(false);
+  hud.clearMessage();
+  pauseBtn.hidden = true;
+  stage.classList.add('is-attract');
+  if (engine.loc.id !== save.prefs.location && unlockedLocations(save).includes(save.prefs.location)) engine.setLocation(save.prefs.location);
+  engine.setClock(save.prefs.clock === 'flow' ? 'day' : save.prefs.clock, false);
+  if (save.prefs.clock === 'flow') engine.hour = 9.5;
+  startUi = openStart(save, (c) => void onStartChoice(c));
+  // první spuštění dne → nabídni denní odměnu
+  if (save.prefs.seenHelp && canClaim(save.daily, new Date()) && !dailyOffered) {
+    dailyOffered = true;
+    setTimeout(() => {
+      if (state === 'start') openDaily(save, onDailyClaim);
+    }, 700);
+  }
+}
+let dailyOffered = false;
+
+function onDailyClaim(coins: number): void {
+  toast(`Denní odměna: +${coins} mincí!`, { variant: 'success', icon: COIN_SVG });
+  persist(true);
+  startUi?.refresh();
+  hud.setCoins(save.coins, true);
+}
+
+setLocationPreview((id) => {
+  if (state === 'start' && engine.loc.id !== id) engine.setLocation(id);
+});
+
+async function onStartChoice(c: StartChoice): Promise<void> {
+  switch (c.kind) {
+    case 'album':
+      await openAlbum(save);
+      startUi?.refresh();
+      return;
+    case 'shop':
+      await openShop(save, () => applyPrefs());
+      startUi?.refresh();
+      return;
+    case 'missions':
+      openMissions(save);
+      return;
+    case 'daily':
+      openDaily(save, onDailyClaim);
+      return;
+    case 'play':
+      save.prefs.location = c.location;
+      save.prefs.mode = c.mode;
+      save.prefs.clock = c.clock;
+      save.prefs.difficulty = c.difficulty;
+      save.prefs.seenHelp = true;
+      persist(true);
+      await startSession();
+  }
+}
+
+async function startSession(): Promise<void> {
+  const p = save.prefs;
+  engine.audio.unlock();
+  stage.classList.remove('is-attract');
+  engine.attract = false;
+  engine.audio.setQuiet(false);
+  engine.difficulty = p.difficulty;
+  if (engine.loc.id !== p.location) engine.setLocation(p.location);
+  else engine.resetRound();
+  engine.setClock(p.clock, p.mode === 'timed');
+  applyPrefs();
+  engine.autopilot = p.autopilot;
+  session = {
+    location: p.location,
+    mode: p.mode,
+    clock: p.clock,
+    difficulty: p.difficulty,
+    timeLeft: TIMED_SECONDS,
+    elapsed: 0,
+    score: 0,
+    coins: 0,
+    catches: [],
+    combo: 0,
+    lastCatchAt: 0,
+    completed: [],
+    levelUps: [],
+    unlocked: [],
+    fights: 0,
+    waits: 0,
+    scoring: !p.autopilot,
+  };
+  save.stats.sessions += 1;
+  hud.setTimed(p.mode === 'timed');
+  hud.setTimer(TIMED_SECONDS, TIMED_SECONDS);
+  hud.setScore(0);
+  hud.setCombo(0);
+  hud.setClock(engine.hour);
+  hud.show(true);
+  pauseBtn.hidden = false;
+  engine.setPaused(true);
+  state = 'play';
+  await countdown({ container: stage });
+  if (state !== 'play') return;
+  engine.setPaused(false);
+  hud.message(p.autopilot ? 'Autopilot chytá za tebe' : 'Ťukni do vody u ryby', p.autopilot ? '🤖' : '👆', '', 2600);
+}
+
+// ————————————————————————————————— hra —————————————————————————————————
+
+let clockShown = -1;
+function tick(dt: number): void {
+  const s = session;
+  if (!s || state !== 'play') return;
+  s.elapsed += dt;
+  save.stats.playSeconds += dt;
+  if (Math.floor(engine.hour * 6) !== clockShown) {
+    clockShown = Math.floor(engine.hour * 6);
+    hud.setClock(engine.hour);
+  }
+  if (s.mode === 'timed') {
+    const before = Math.ceil(s.timeLeft);
+    s.timeLeft = Math.max(0, s.timeLeft - dt);
+    const now = Math.ceil(s.timeLeft);
+    if (now !== before) {
+      hud.setTimer(s.timeLeft, TIMED_SECONDS);
+      if (now <= 5 && now > 0) sfx.tone({ freq: 880, dur: 0.08, type: 'square', gain: 0.3 });
+    }
+    // čas vypršel – dochytat rozdělanou rybu, pak konec
+    if (s.timeLeft <= 0 && engine.phase !== 'fight' && engine.phase !== 'landing') void endSession();
+  }
+  const f = engine.fightState;
+  if (engine.phase === 'fight' && f && !engine.autopilot) {
+    if (f.tension > 0.86) hud.message('Pusť! Vlasec by praskl!', '✋', 'alert', 0);
+    else if (s.fights <= 2 || f.tension < 0.2) hud.message(touchUi ? 'Drž prst a navíjej' : 'Drž myš nebo mezerník', '👇', '', 0);
+    else hud.clearMessage();
+  }
+}
+
+function onPhase(p: Phase): void {
+  const s = session;
+  if (!s || state !== 'play' || engine.autopilot) return;
+  switch (p) {
+    case 'waiting':
+      s.waits++;
+      if (s.waits <= 2) hud.message('Počkej, až se splávek potopí', '🔴', '', 2400);
+      break;
+    case 'bite':
+      if (s.difficulty === 'easy') hud.message('Záběr!', '🐟', 'good', 900);
+      else hud.message('Záběr! Ťukni!', '❗', 'alert', 1400);
+      break;
+    case 'fight':
+      s.fights++;
+      break;
+    case 'landing':
+    case 'idle':
+      hud.clearMessage();
+      break;
+  }
+}
+
+function onLost(r: LostReason): void {
+  const s = session;
+  if (!s) return;
+  s.combo = 0;
+  hud.setCombo(0);
+  if (r === 'snapped') save.stats.snapped++;
+  if (r === 'escaped') save.stats.escaped++;
+  if (engine.autopilot) return;
+  const msg: Record<LostReason, [string, string]> = {
+    late: ['Utekla! Ťukni hned, jak se splávek potopí', '💨'],
+    early: ['Moc brzy! Počkej, až se splávek potopí', '⏳'],
+    snapped: ['Prásk! Vlasec praskl – pouštěj v červeném', '💥'],
+    escaped: ['Ryba odplavala – víc navíjej', '🌊'],
+  };
+  const [t, i] = msg[r];
+  hud.message(t, i, '', 2600);
+}
+
+function onPerfect(): void {
+  if (!session?.scoring) return;
+  const done = applyPerfect(save, Math.random);
+  announceMissions(done);
+  hud.setMissions(save.missions);
+  persist();
+}
+
+function announceMissions(done: Mission[]): void {
+  if (!done.length) return;
+  for (const m of done) {
+    session?.completed.push(m);
+    if (session) session.coins += m.reward;
+    toast(`Mise splněna! +${m.reward} mincí`, { variant: 'success', icon: COIN_SVG });
+  }
+  sfx.levelUp();
+  hud.setCoins(save.coins, true);
+}
+
+async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void> {
+  const s = session;
+  if (!s) return;
+  const now = performance.now();
+  s.combo = now - s.lastCatchAt < 45000 || s.lastCatchAt === 0 ? s.combo + 1 : 1;
+  s.lastCatchAt = now;
+  const unlockedBefore = unlockedLocations(save);
+  const out = applyCatch(
+    save,
+    {
+      species: f.species,
+      sizeCm: f.sizeCm,
+      trophy: f.trophy,
+      rainbow: f.rainbow,
+      perfect,
+      night,
+      location: s.location,
+      bait: save.equipped.bait,
+      combo: s.combo,
+    },
+    new Date(),
+    Math.random,
+    s.scoring,
+  );
+  s.catches.push(out.event);
+  if (s.scoring) {
+    s.score += out.points.points;
+    s.coins += out.coins;
+  }
+  hud.setScore(s.score, true);
+  hud.setCoins(save.coins, true);
+  hud.setCombo(s.scoring ? s.combo : 0);
+  hud.setMissions(save.missions);
+  if (s.combo >= 2 && s.scoring) sfx.play('coin');
+  announceMissions(out.completed);
+  if (out.levelAfter > out.levelBefore) {
+    const info = levelInfo(save.xp);
+    s.levelUps.push({ level: info.level, title: info.title });
+    toast(`Nová úroveň ${info.level}: ${info.title}!`, { variant: 'accent', icon: UI_ICONS.trophy });
+    engine.audio.play('levelup');
+    for (const id of unlockedLocations(save)) {
+      if (!unlockedBefore.includes(id)) {
+        s.unlocked.push(LOCATION_BY_ID[id].name);
+        toast(`Odemčeno nové místo: ${LOCATION_BY_ID[id].icon} ${LOCATION_BY_ID[id].name}!`, { variant: 'success' });
+      }
+    }
+  }
+  persist();
+  reportActivity();
+  const big = out.newSpecies || out.record || f.trophy || f.rainbow || out.released;
+  engine.audio.play(out.newSpecies || f.trophy || f.rainbow ? 'fanfare' : 'catch');
+  speech.speak(out.newSpecies ? `Nový druh! ${f.species.name}` : f.species.name);
+  if (!big || state !== 'play') {
+    showMiniCatch(stage, f.species, f.sizeCm, s.scoring ? out.points.points : null);
+    return;
+  }
+  if (out.newSpecies || f.trophy || f.rainbow) confetti({ particleCount: 120, origin: { x: 0.5, y: 0.35 } });
+  state = 'card';
+  engine.setPaused(true);
+  hud.clearMessage();
+  let toAlbum = false;
+  await showCatchCard({
+    species: f.species,
+    outcome: out,
+    sizeCm: f.sizeCm,
+    scoring: s.scoring,
+    autoCloseMs: engine.autopilot ? 3500 : undefined,
+    onAlbum: () => (toAlbum = true),
+  });
+  if (toAlbum) await openAlbum(save, { focus: f.species.id });
+  speech.stop();
+  if (state === 'card') {
+    state = 'play';
+    engine.setPaused(false);
+  }
+}
+
+// ————————————————————————————————— pauza / konec —————————————————————————————————
+
+let pausing = false;
+async function pause(): Promise<void> {
+  if (state !== 'play' || pausing) return;
+  pausing = true;
+  state = 'pause';
+  engine.setPaused(true);
+  hud.clearMessage();
+  const s = session;
+  const photoBtn = h('button', { type: 'button', class: 'g92-btn g92-btn--soft g92-btn--lg' }, '📷 Fotka');
+  const albumB = h('button', { type: 'button', class: 'g92-btn g92-btn--soft g92-btn--lg' }, '📖 Album');
+  const extra = h('div', { class: 'g92-overlay__row', style: 'width:100%' }, albumB, photoBtn);
+  const ov = showPause({
+    subtitle: s ? `${LOCATION_BY_ID[s.location].icon} ${LOCATION_BY_ID[s.location].name}` : undefined,
+    stats: s
+      ? [
+          { label: 'Ryb', value: s.catches.length },
+          { label: 'Body', value: s.score },
+          ...(s.mode === 'timed' ? [{ label: 'Zbývá', value: `${Math.floor(s.timeLeft / 60)}:${String(Math.ceil(s.timeLeft % 60) % 60).padStart(2, '0')}` }] : []),
+        ]
+      : [],
+    menuHref: null,
+    menuLabel: 'Ukončit',
+    extra,
+  });
+  photoBtn.addEventListener('click', () => ov.close('photo' as 'resume'));
+  albumB.addEventListener('click', () => ov.close('album' as 'resume'));
+  const choice = (await ov) as string;
+  pausing = false;
+  if (choice === 'photo') return photoMode();
+  if (choice === 'album') {
+    await openAlbum(save);
+    state = 'play';
+    return pause();
+  }
+  if (choice === 'restart') {
+    state = 'play';
+    return startSession();
+  }
+  if (choice === 'menu') return endSession();
+  state = 'play';
+  engine.setPaused(false);
+}
+
+function photoMode(): void {
+  state = 'photo';
+  hud.show(false);
+  engine.setPaused(false);
+  const save_ = h('button', { type: 'button', class: 'g92-btn g92-btn--secondary' }, '💾 Uložit obrázek');
+  const back = h('button', { type: 'button', class: 'g92-btn' }, '✓ Zpět do hry');
+  const bar = h('div', { class: 'photo-exit g92-row' }, save_, back);
+  stage.append(bar);
+  save_.addEventListener('click', async () => {
+    const blob = await engine.snapshot();
+    if (!blob) return;
+    const a = h('a', { href: URL.createObjectURL(blob), download: `ryby-${new Date().toISOString().slice(0, 10)}.png` }) as HTMLAnchorElement;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    sfx.success();
+  });
+  back.addEventListener('click', () => {
+    bar.remove();
+    hud.show(true);
+    state = 'play';
+    void pause();
+  });
+}
+
+async function endSession(): Promise<void> {
+  const s = session;
+  if (!s || state === 'results') return;
+  state = 'results';
+  engine.setPaused(true);
+  engine.reelHeld = false;
+  hud.show(false);
+  hud.clearMessage();
+  pauseBtn.hidden = true;
+  let best = save.records[recordKey(s.location, s.difficulty)] ?? 0;
+  let isNewBest = false;
+  if (s.mode === 'timed' && s.scoring && s.score > best) {
+    best = s.score;
+    isNewBest = true;
+    save.records[recordKey(s.location, s.difficulty)] = s.score;
+  }
+  persist(true);
+  reportActivity();
+  const choice = await openResults({
+    mode: s.mode,
+    difficulty: s.difficulty,
+    score: s.score,
+    best,
+    isNewBest,
+    catches: s.catches,
+    coins: s.coins,
+    completed: s.completed,
+    levelUps: s.levelUps,
+    unlocked: s.unlocked,
+    seconds: s.elapsed,
+    scoring: s.scoring,
+  });
+  if (choice === 'again') return startSession();
+  if (choice === 'album') await openAlbum(save);
+  showHome();
+}
+
+// ————————————————————————————————— vstup —————————————————————————————————
+
+let touchUi = matchMedia('(pointer: coarse)').matches;
+
+function localPoint(e: PointerEvent): { x: number; y: number } {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  touchUi = e.pointerType !== 'mouse';
+  if (state !== 'play') return;
+  engine.audio.unlock();
+  if (engine.autopilot) return;
+  e.preventDefault();
+  canvas.setPointerCapture?.(e.pointerId);
+  const p = localPoint(e);
+  hud.toggleBaitPop(false);
+  engine.action(p.x, p.y);
+});
+const release = () => {
+  engine.reelHeld = false;
+};
+canvas.addEventListener('pointerup', release);
+canvas.addEventListener('pointercancel', release);
+canvas.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'mouse' && state === 'play') engine.aim = localPoint(e);
+});
+canvas.addEventListener('pointerleave', () => (engine.aim = null));
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
+window.addEventListener('keydown', (e) => {
+  if (state !== 'play' || isTyping(e.target) || document.querySelector('dialog[open], .sheet')) return;
+  const k = e.key;
+  if (k === 'Escape' || k === 'p' || k === 'P') {
+    e.preventDefault();
+    void pause();
+    return;
+  }
+  if (engine.autopilot) return;
+  if (k === ' ' || k === 'Enter') {
+    const target = e.target as HTMLElement | null;
+    if (target && target !== document.body && target.closest('button, a')) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    touchUi = false;
+    engine.audio.unlock();
+    engine.action();
+    return;
+  }
+  const step = e.shiftKey ? 0.08 : 0.035;
+  if (k === 'ArrowLeft') engine.moveKeyAim(-step, 0);
+  else if (k === 'ArrowRight') engine.moveKeyAim(step, 0);
+  else if (k === 'ArrowUp') engine.moveKeyAim(0, -step);
+  else if (k === 'ArrowDown') engine.moveKeyAim(0, step);
+  else if (k === 'b' || k === 'B') cycleBait();
+  else return;
+  e.preventDefault();
+});
+window.addEventListener('keyup', (e) => {
+  if (e.key === ' ' || e.key === 'Enter') engine.reelHeld = false;
+});
+
+pauseBtn.addEventListener('click', () => void pause());
+
+appbar.addEventListener('g92-settings', (e) => {
+  e.preventDefault();
+  const wasPlaying = state === 'play';
+  if (wasPlaying) {
+    state = 'pause';
+    engine.setPaused(true);
+  }
+  const d = openSettingsDialog({
+    extra: settingsExtra(
+      save,
+      () => {
+        applyPrefs();
+        startUi?.refresh();
+      },
+      () => {
+        resetSave();
+        ensureMissions(save, Math.random);
+        applyPrefs();
+        d.close();
+        if (state === 'start') location.reload();
+      },
+    ),
+  });
+  void d.closed.then(() => {
+    if (wasPlaying && state === 'pause') {
+      state = 'play';
+      engine.setPaused(false);
+    }
+  });
+});
+
+autoPause(() => {
+  if (state === 'play') void pause();
+});
+
+window.addEventListener('resize', () => engine.resize());
+new ResizeObserver(() => engine.resize()).observe(stage);
+
+// ————————————————————————————————— start —————————————————————————————————
+
+ensureMissions(save, Math.random);
+engine.setLocation(unlockedLocations(save).includes(save.prefs.location) ? save.prefs.location : 'rybnik');
+applyPrefs();
+engine.start();
+reportActivity();
+showHome();
+
+// pro testy / ladění
+declare global {
+  interface Window {
+    __ryby?: { engine: Engine; save: typeof save; state: () => State; species: number };
+  }
+}
+window.__ryby = { engine, save, state: () => state, species: SPECIES.length };

@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "images": "node scripts/build-images.mjs",
-    "icons": "node scripts/build-icons.mjs"
+    "icons": "node --experimental-strip-types ../menu/kit/scripts/pwa-icons.mjs ryby public"
   },
   "devDependencies": {
     "sharp": "^0.35.4",
