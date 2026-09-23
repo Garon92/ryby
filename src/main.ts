@@ -32,7 +32,7 @@ import { persist, resetSave, save } from './store';
 import { openAlbum } from './ui/album';
 import { COIN_SVG } from './ui/icons';
 import { showCatchCard, showMiniCatch } from './ui/catchCard';
-import { openDaily, openMissions } from './ui/dialogs';
+import { missionText, openDaily, openMissions } from './ui/dialogs';
 import { Hud } from './ui/hud';
 import { openResults } from './ui/results';
 import { settingsExtra } from './ui/settings';
@@ -358,23 +358,27 @@ function onPerfect(): void {
   persist();
 }
 
-function announceTrophies(list: Achievement[]): void {
+/** Oznámení trofejí; `into` = místo toastů je vypsat do karty úlovku. */
+function announceTrophies(list: Achievement[], into?: string[]): void {
   if (!list.length) return;
   for (const a of list) {
     session?.trophies.push(a);
     if (session) session.coins += a.reward;
-    toast(`Trofej: ${a.icon} ${a.name}! +${a.reward} mincí`, { variant: 'accent', icon: UI_ICONS.trophy, duration: 4200 });
+    const text = `Trofej: ${a.icon} ${a.name}! +${a.reward} mincí`;
+    if (into) into.push(`🏆 ${text}`);
+    else toast(text, { variant: 'accent', icon: UI_ICONS.trophy, duration: 4200 });
   }
   setTimeout(() => sfx.win(), 250);
   hud.setCoins(save.coins, true);
 }
 
-function announceMissions(done: Mission[]): void {
+function announceMissions(done: Mission[], into?: string[]): void {
   if (!done.length) return;
   for (const m of done) {
     session?.completed.push(m);
     if (session) session.coins += m.reward;
-    toast(`Mise splněna! +${m.reward} mincí`, { variant: 'success', icon: COIN_SVG });
+    if (into) into.push(`🎯 Mise splněna: ${missionText(m).text} (+${m.reward} mincí)`);
+    else toast(`Mise splněna! +${m.reward} mincí`, { variant: 'success', icon: COIN_SVG });
   }
   sfx.levelUp();
   hud.setCoins(save.coins, true);
@@ -424,26 +428,31 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
   hud.setCombo(s.scoring ? s.combo : 0);
   hud.setMissions(save.missions);
   if (s.combo >= 2 && s.scoring) sfx.play('coin');
-  announceMissions(out.completed);
-  announceTrophies(out.achievements);
+  const big = (out.newSpecies || out.record || f.trophy || f.rainbow || out.released) && state === 'play';
+  // při velké kartě úlovku se novinky vypíšou do ní (toasty by překryly tlačítka)
+  const notes: string[] | undefined = big ? [] : undefined;
+  announceMissions(out.completed, notes);
+  announceTrophies(out.achievements, notes);
   if (out.levelAfter > out.levelBefore) {
     const info = levelInfo(save.xp);
     s.levelUps.push({ level: info.level, title: info.title });
-    toast(`Nová úroveň ${info.level}: ${info.title}!`, { variant: 'accent', icon: UI_ICONS.trophy });
+    if (notes) notes.push(`⬆️ Nová úroveň ${info.level}: ${info.title}!`);
+    else toast(`Nová úroveň ${info.level}: ${info.title}!`, { variant: 'accent', icon: UI_ICONS.trophy });
     engine.audio.play('levelup');
     for (const id of unlockedLocations(save)) {
       if (!unlockedBefore.includes(id)) {
         s.unlocked.push(LOCATION_BY_ID[id].name);
-        toast(`Odemčeno nové místo: ${LOCATION_BY_ID[id].icon} ${LOCATION_BY_ID[id].name}!`, { variant: 'success' });
+        const t = `Odemčeno nové místo: ${LOCATION_BY_ID[id].icon} ${LOCATION_BY_ID[id].name}!`;
+        if (notes) notes.push(`🔓 ${t}`);
+        else toast(t, { variant: 'success' });
       }
     }
   }
   persist();
   reportActivity();
-  const big = out.newSpecies || out.record || f.trophy || f.rainbow || out.released;
   engine.audio.play(out.newSpecies || f.trophy || f.rainbow ? 'fanfare' : 'catch');
   speech.speak(out.newSpecies ? `Nový druh! ${f.species.name}` : f.species.name);
-  if (!big || state !== 'play') {
+  if (!big) {
     showMiniCatch(stage, f.species, f.sizeCm, s.scoring ? out.points.points : null);
     return;
   }
@@ -459,6 +468,7 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
     scoring: s.scoring,
     autoCloseMs: engine.autopilot ? 3500 : undefined,
     onAlbum: () => (toAlbum = true),
+    notes,
   });
   if (toAlbum) await openAlbum(save, { focus: f.species.id });
   speech.stop();

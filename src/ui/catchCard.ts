@@ -13,6 +13,8 @@ export interface CatchCardOpts {
   scoring: boolean;
   autoCloseMs?: number;
   onAlbum?: () => void;
+  /** splněné mise, trofeje, nová úroveň… */
+  notes?: string[];
 }
 
 /** Velká karta úlovku (nový druh, rekord, trofej, duhová, chráněná). */
@@ -54,6 +56,11 @@ export function showCatchCard(o: CatchCardOpts): Promise<void> {
   panel.append(factRow);
   if (outcome.released) {
     panel.append(h('div', { class: 'protected-note' }, '💚 Chráněná ryba – vyfotíme ji do alba a opatrně pustíme zpátky do vody.'));
+  }
+  if (o.notes?.length) {
+    const list = h('div', { class: 'results-note' });
+    for (const n of o.notes) list.append(h('div', null, n));
+    panel.append(list);
   }
 
   const cont = h('button', { type: 'button', class: 'g92-btn g92-btn--xl g92-btn--block', 'data-primary': true, html: UI_ICONS.play });
