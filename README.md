@@ -13,7 +13,9 @@ zasekneš a zdoláš rybu – a každý nový druh se uloží do **alba**, kter�
 - **Skutečné rybaření:** hod obloukem, splávek, okusování, záběr, zaseknutí, zdolávání s ukazatelem napětí
   vlasce (když je ručička v červeném, je třeba povolit), vylovení.
 - **Denní doba:** ráno, den, večer a noc s měsícem, hvězdami, světluškami a lucernou. V noci berou sumci,
-  úhoři, candáti a mníci.
+  úhoři, candáti a mníci. Občas **prší** – pak ryby berou lépe.
+- **Trofeje** (20 úspěchů: sběratel, pán rybníka, obr přes metr, noční rybář…), **ryba dne** na úvodní
+  obrazovce, hvězdy výpravy rozsvěcované už během hry.
 - **Návnady:** žížala, kukuřice, třpytka, muška – každá láká jiné ryby (podle toho, co ryba opravdu jí).
 - **Tři obtížnosti:** 🐣 Mrňous (ryba se zasekne sama, vlasec nepraskne), 🎣 Rybář, 🏆 Mistr.
 - **Režimy:** ⏱️ Výprava na 3 minuty (body, hvězdy, rekordy pro každé místo a obtížnost) a ♾️ Volné chytání.
