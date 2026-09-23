@@ -31,8 +31,12 @@ class Speech {
     return () => this.listeners.delete(fn);
   }
 
-  speak(text: string, opts: { rate?: number; interrupt?: boolean } = {}): void {
-    if (!this.enabled || !this.synth || !this.voice) return;
+  /**
+   * Automatické hlášení (název ryby po úlovku) se řídí nastavením; `force` = dítě ťuklo na „Poslechnout“,
+   * to mluví vždy (i s vypnutými zvuky – QA C-13).
+   */
+  speak(text: string, opts: { rate?: number; interrupt?: boolean; force?: boolean } = {}): void {
+    if ((!this.enabled && !opts.force) || !this.synth || !this.voice) return;
     try {
       if (opts.interrupt !== false) this.synth.cancel();
       const u = new SpeechSynthesisUtterance(text);

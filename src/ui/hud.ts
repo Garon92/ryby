@@ -148,6 +148,10 @@ export class Hud {
     }
   }
 
+  get baitMenuOpen(): boolean {
+    return !this.baitPop.hidden;
+  }
+
   toggleBaitPop(force?: boolean): void {
     const open = force ?? this.baitPop.hidden;
     this.baitPop.hidden = !open;

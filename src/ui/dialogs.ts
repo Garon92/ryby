@@ -52,7 +52,7 @@ export function openMissions(save: Save): Promise<unknown> {
 }
 
 /** Denní odměna se sérií 7 dní. */
-export function openDaily(save: Save, onClaim: (coins: number) => void): void {
+export function openDaily(save: Save, onClaim: (coins: number) => void): Promise<void> {
   const now = new Date();
   const can = canClaim(save.daily, now);
   const today = nextStreakDay(save.daily, now);
@@ -83,7 +83,7 @@ export function openDaily(save: Save, onClaim: (coins: number) => void): void {
     content,
     actions: can ? [{ label: `Vyzvednout +${DAILY_REWARDS[today - 1]} mincí`, value: 'claim', icon: COIN_SVG }] : [{ label: 'Dobře' }],
   });
-  void d.closed.then((v) => {
+  return d.closed.then((v) => {
     if (v !== 'claim') return;
     const r = claimDailyReward(save, new Date());
     if (r) {

@@ -90,12 +90,23 @@ export class GameAudio {
     this.applyVolumes();
   }
 
+  /** hra běží (ne pauza, úvod, výsledky) – jinak je ticho: žádné okolí, hudba ani efekty scény */
+  active = true;
+
+  setActive(a: boolean): void {
+    if (this.active === a) return;
+    this.active = a;
+    if (!a) this.setReel(false);
+    this.applyVolumes();
+  }
+
   private applyVolumes(): void {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    this.sfxGain.gain.setTargetAtTime(this.soundOn ? (this.quiet ? 0.25 : 1) : 0, t, 0.05);
-    this.ambGain.gain.setTargetAtTime(this.soundOn && this.ambienceOn ? 1 : 0, t, 0.3);
-    this.musicGain.gain.setTargetAtTime(this.soundOn && this.musicOn ? 0.06 : 0, t, 0.4);
+    const on = this.soundOn && this.active;
+    this.sfxGain.gain.setTargetAtTime(on ? (this.quiet ? 0.25 : 1) : 0, t, 0.05);
+    this.ambGain.gain.setTargetAtTime(on && this.ambienceOn ? 1 : 0, t, 0.3);
+    this.musicGain.gain.setTargetAtTime(on && this.musicOn ? 0.06 : 0, t, 0.4);
   }
 
   private volume = 0.9;
@@ -185,6 +196,7 @@ export class GameAudio {
         this.click(2400 + Math.random() * 300, 0.018, 0.12);
       }
     }
+    if (!this.active) return;
     if (this.soundOn && this.ambienceOn) {
       this.ambTimer -= dt;
       if (this.ambTimer <= 0) {

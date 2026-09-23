@@ -30,7 +30,7 @@ export function settingsExtra(save: Save, apply: () => void, onReset: () => void
   const voice = toggle('ry-voice', 'Hlas', voiceHint, p.voice && speech.available, (v) => {
     p.voice = v;
     apply();
-    if (v) speech.speak('Kapr obecný');
+    if (v) speech.speak('Kapr obecný', { force: true });
   });
   if (!speech.available) (voice.querySelector('input') as HTMLInputElement).disabled = true;
   wrap.append(voice);

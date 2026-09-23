@@ -35,6 +35,8 @@ export const KEYS = [
   { keys: ['←', '→', '↑', '↓'], text: 'mířit, kam nahodit' },
   { keys: ['B'], text: 'změnit návnadu' },
   { keys: ['Esc', 'P'], text: 'pauza' },
+  { keys: ['M'], text: 'zvuk zapnout / vypnout' },
+  { keys: ['F'], text: 'celá obrazovka' },
 ];
 
 export type StartChoice =
@@ -103,7 +105,6 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
     })),
     difficulty: st.difficulty,
     best: null,
-    playLabel: 'Rybařit!',
     howTo: HOW_TO,
     keys: KEYS,
     showHowTo: !save.prefs.seenHelp,
@@ -215,21 +216,27 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
         h('b', null, `${l.icon} ${l.name}`),
         h('small', null, open ? `${prog.caught}/${prog.total} druhů` : `od úrovně ${l.unlockLevel}`),
       );
+      if (l.id === st.location && recordOf(l.id) > 0) btn.append(h('small', { class: 'loc-record' }, `🏆 ${fmtNum(recordOf(l.id))}`));
       if (!open) btn.append(h('span', { class: 'lock', html: `<span>🔒 úroveň ${l.unlockLevel}</span>` }));
       btn.addEventListener('click', () => {
         if (!open) return;
         sfx.click();
         st.location = l.id;
-        renderLocations();
         renderBest();
         onLocationPreview(l.id);
+        locGrid.querySelector<HTMLElement>('[aria-checked="true"]')?.focus({ preventScroll: true });
       });
       locGrid.append(btn);
     }
     blurb.textContent = LOCATION_BY_ID[st.location].blurb;
   }
 
+  function recordOf(loc: LocationId): number {
+    return st.mode === 'timed' ? (save.records[recordKey(loc, st.difficulty)] ?? 0) : 0;
+  }
+
   function renderBest(): void {
+    renderLocations();
     const v = save.records[recordKey(st.location, st.difficulty)] ?? 0;
     best.hidden = st.mode !== 'timed' || v <= 0;
     best.innerHTML = `${UI_ICONS.trophy}<span>Rekord výpravy: <b>${fmtNum(v)}</b></span>`;
@@ -285,7 +292,6 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
     fod.replaceWith(next);
     fod = next;
     renderStrip();
-    renderLocations();
     renderBest();
     renderLinks();
   }

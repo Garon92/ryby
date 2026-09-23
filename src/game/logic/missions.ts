@@ -46,6 +46,9 @@ const BAIT_NAME: Record<BaitId, string> = { worm: 'na žížalu', corn: 'na kuku
 const BAIT_ICON: Record<BaitId, string> = { worm: '🪱', corn: '🌽', spinner: '✨', fly: '🪰' };
 const LOCATION_ICON: Record<LocationId, string> = { rybnik: '🪷', reka: '🌉', potok: '🌲', prehrada: '⛵' };
 
+/** „1 rybu / 2 ryby / 5 ryb“ (4. pád) */
+const ryb = (n: number) => (n === 1 ? 'rybu' : n >= 2 && n <= 4 ? 'ryby' : 'ryb');
+
 export function isDone(m: Mission): boolean {
   return m.progress >= m.target;
 }
@@ -54,9 +57,9 @@ export function describeMission(m: Mission, speciesName?: (id: string) => string
   const n = m.target;
   switch (m.kind) {
     case 'count':
-      return { icon: '🐟', text: `Chyť ${n} ${n >= 5 ? 'ryb' : 'ryby'}` };
+      return { icon: '🐟', text: `Chyť ${n} ${ryb(n)}` };
     case 'species':
-      return { icon: '🔍', text: `Chyť: ${speciesName?.(m.species ?? '') ?? m.species}` };
+      return { icon: '🔍', text: `Ulov druh ${speciesName?.(m.species ?? '') ?? m.species}` };
     case 'rarity':
       return {
         icon: '💎',
@@ -70,7 +73,7 @@ export function describeMission(m: Mission, speciesName?: (id: string) => string
     case 'location':
       return {
         icon: LOCATION_ICON[m.location ?? 'rybnik'],
-        text: `Chyť ${n} ${n >= 5 ? 'ryb' : 'ryby'} ${LOCATION_NAME[m.location ?? 'rybnik']}`,
+        text: `Chyť ${n} ${ryb(n)} ${LOCATION_NAME[m.location ?? 'rybnik']}`,
       };
     case 'size':
       return { icon: '📏', text: `Chyť rybu delší než ${m.minSize} cm` };
@@ -79,9 +82,9 @@ export function describeMission(m: Mission, speciesName?: (id: string) => string
     case 'newSpecies':
       return { icon: '📖', text: n > 1 ? `Objev ${n} nové druhy` : 'Objev nový druh do alba' };
     case 'night':
-      return { icon: '🌙', text: `Chyť ${n} ${n >= 5 ? 'ryb' : n > 1 ? 'ryby' : 'rybu'} v noci` };
+      return { icon: '🌙', text: `Chyť ${n} ${ryb(n)} v noci` };
     case 'bait':
-      return { icon: BAIT_ICON[m.bait ?? 'worm'], text: `Chyť ${n} ${n > 1 ? 'ryby' : 'rybu'} ${BAIT_NAME[m.bait ?? 'worm']}` };
+      return { icon: BAIT_ICON[m.bait ?? 'worm'], text: `Chyť ${n} ${ryb(n)} ${BAIT_NAME[m.bait ?? 'worm']}` };
     case 'combo':
       return { icon: '🔥', text: `Udělej sérii ${n} úlovků` };
   }

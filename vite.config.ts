@@ -16,6 +16,16 @@ export default defineConfig({
       g92Pwa('ryby', {
         name: 'Ryby – rybářská hra',
         description: 'Nahoď prut a chytej české ryby v rybníce, řece, potoce i na přehradě. Album 59 druhů, mise a odměny.',
+        // předem jen aplikace + malé náhledy ryb (album offline); velké obrázky ryb se ukládají až při použití
+        // (dřív se na pozadí stahoval celý atlas 2+ MB – QA RYBY-12), italic písma se nepoužívají
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}', 'assets/*-normal-*.woff2', 'fish/thumb/*.webp'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/fish\/[a-z_]+\.webp$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'ryby-fish', expiration: { maxEntries: 80 } },
+          },
+        ],
       }),
     ),
   ],

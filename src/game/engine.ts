@@ -258,8 +258,15 @@ export class Engine {
       }
       const dt = Math.min(0.05, (now - this.last) / 1000);
       this.last = now;
-      if (!this.paused) this.update(dt);
-      this.render();
+      // v pauze se scéna nepřekresluje (šetří baterii) – jen jednou po zastavení / změně velikosti
+      if (!this.paused) {
+        this.update(dt);
+        this.render();
+        this.frozen = false;
+      } else if (!this.frozen) {
+        this.render();
+        this.frozen = true;
+      }
     };
     this.raf = requestAnimationFrame(loop);
   }
@@ -269,8 +276,12 @@ export class Engine {
     cancelAnimationFrame(this.raf);
   }
 
+  /** scéna je v pauze vykreslená a stojí */
+  private frozen = false;
+
   setPaused(p: boolean): void {
     this.paused = p;
+    this.frozen = false;
     if (p) {
       this.reelHeld = false;
       this.audio.setReel(false);
@@ -294,6 +305,7 @@ export class Engine {
     this.canvas.height = Math.round(h * dpr);
     this.world = computeWorld(w, h, dpr, this.loc);
     this.scene.resize(this.world);
+    this.frozen = false;
     this.fx.surfaceY = this.world.surfaceY;
     if (old && keepFish !== true) {
       // vše přepočítat poměrově, aby otočení telefonu nebo schování lišty prohlížeče nezrušilo záběr

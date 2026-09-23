@@ -211,7 +211,7 @@ export function openAlbum(save: Save, opts: { focus?: string; filter?: Filter } 
       const listen = h('button', { type: 'button', class: 'g92-btn g92-btn--soft', html: UI_ICONS.soundOn });
       listen.append(speech.available ? 'Poslechnout' : 'Hlas není k dispozici');
       listen.disabled = !speech.available;
-      listen.addEventListener('click', () => speech.speak(`${s.name}. ${s.facts.join(' ')}`));
+      listen.addEventListener('click', () => speech.speak(`${s.name}. ${s.facts.join(' ')}`, { force: true }));
       right.append(h('div', { class: 'g92-row' }, listen));
     }
     if (s.protected && known) right.append(h('div', { class: 'protected-note' }, '💚 V Česku je to chráněný druh – rybáři ji vždy opatrně pustí zpátky do vody.'));

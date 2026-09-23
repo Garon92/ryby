@@ -57,19 +57,14 @@ export function showCatchCard(o: CatchCardOpts): Promise<void> {
   if (outcome.released) {
     panel.append(h('div', { class: 'protected-note' }, '💚 Chráněná ryba – vyfotíme ji do alba a opatrně pustíme zpátky do vody.'));
   }
-  if (o.notes?.length) {
-    const list = h('div', { class: 'results-note' });
-    for (const n of o.notes) list.append(h('div', null, n));
-    panel.append(list);
-  }
 
   const cont = h('button', { type: 'button', class: 'g92-btn g92-btn--xl g92-btn--block', 'data-primary': true, html: UI_ICONS.play });
-  cont.append(outcome.released ? 'Pustit a chytat dál' : 'Chytat dál');
+  cont.append('Pokračovat');
   const row = h('div', { class: 'g92-overlay__row' });
   const listen = h('button', { type: 'button', class: 'g92-btn g92-btn--secondary g92-btn--lg', html: UI_ICONS.soundOn });
   listen.append('Poslechnout');
   listen.disabled = !speech.available;
-  listen.addEventListener('click', () => speech.speak(`${s.name}. ${fact}`));
+  listen.addEventListener('click', () => speech.speak(`${s.name}. ${fact}`, { force: true }));
   row.append(listen);
   if (o.onAlbum) {
     const album = h('button', { type: 'button', class: 'g92-btn g92-btn--ghost g92-btn--lg' }, '📖 V albu');
@@ -79,7 +74,13 @@ export function showCatchCard(o: CatchCardOpts): Promise<void> {
     });
     row.append(album);
   }
-  panel.append(h('div', { class: 'g92-overlay__actions' }, cont, row));
+  panel.append(h('div', { class: 'g92-overlay__actions catch-actions' }, cont, row));
+  // splněné mise, trofeje, nová úroveň – až pod tlačítky (hlavní tlačítko musí být vidět, QA RYBY-02)
+  if (o.notes?.length) {
+    const list = h('div', { class: 'catch-notes' });
+    for (const n of o.notes) list.append(h('div', null, n));
+    panel.append(list);
+  }
   document.body.append(root);
   requestAnimationFrame(() => cont.focus({ preventScroll: true }));
 

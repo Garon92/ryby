@@ -865,7 +865,7 @@ html[data-scheme='dark'] .fish-card.is-locked img {
 .catch-hero img {
   position: relative;
   width: 100%;
-  max-height: 200px;
+  max-height: min(200px, 22vh);
   object-fit: contain;
   filter: drop-shadow(0 12px 14px rgb(0 30 50 / 0.35));
   animation: ry-flop 900ms var(--g92-ease-spring);
@@ -1049,7 +1049,8 @@ html[data-scheme='dark'] .fish-card.is-locked img {
   }
   .mission-chip {
     padding: 3px;
-    min-height: 40px;
+    min-height: 44px;
+    min-width: 44px;
   }
   .pill {
     min-height: 34px;
@@ -1331,15 +1332,60 @@ html[data-scheme='dark'] .fish-card.is-locked img {
   outline: 3px solid var(--accent);
 }
 
-/* výsledky */
+/* výsledky – úlovky a novinky jsou pod tlačítky v jedné řadě */
+.results-extra {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
 .results-catches {
   width: 100%;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 6px 2px 4px;
+  justify-content: safe center;
+}
+
+.results-catches figure {
+  flex: none;
+}
+
+.results-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   justify-content: center;
-  max-height: 170px;
-  overflow-y: auto;
+}
+
+.results-chips .g92-chip {
+  font-weight: var(--g92-fw-bold);
+}
+
+.catch-notes {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+}
+
+.catch-notes > div {
+  padding: 6px 12px;
+  border-radius: var(--g92-radius-lg);
+  background: var(--accent-softer);
+  font-weight: var(--g92-fw-bold);
+  font-size: var(--g92-fs-sm);
+}
+
+/* hlavní tlačítka karet a výsledků zůstávají vidět i při delším obsahu (QA RYBY-02) */
+.catch-card .g92-overlay__actions,
+.g92-overlay--results .g92-overlay__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-block: 12px 10px;
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--g92-surface) 0%, transparent), var(--g92-surface) 16px);
 }
 
 .results-catches figure {
@@ -1379,6 +1425,29 @@ html[data-scheme='dark'] .fish-card.is-locked img {
   border-radius: var(--g92-radius-lg);
   background: var(--accent-softer);
   font-weight: var(--g92-fw-bold);
+}
+
+/* toasty nahoře (dole jsou tlačítka a HUD – QA RYBY-10 / C-04) */
+.g92-toasts {
+  top: calc(var(--g92-appbar-total) + 12px);
+  bottom: auto;
+}
+
+body.is-trip .g92-toasts {
+  top: calc(var(--g92-appbar-total) + 64px);
+}
+
+/* HUD: žádné systémové menu při dlouhém podržení obrázků (iOS) */
+.hud {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* hry: v overlayích a panelech jen svislé posouvání, žádné nechtěné přiblížení (C-27) */
+.g92-overlay,
+.sheet {
+  touch-action: pan-y;
 }
 
 /* nastavení – vlastní sekce */
@@ -1514,6 +1583,9 @@ html[data-scheme='dark'] .fish-card.is-locked img {
   }
   .mission-chip {
     padding: 4px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
   .bait-btn {
     width: 58px;
@@ -1773,4 +1845,116 @@ html[data-scheme='dark'] .fod.is-locked .fod__pic img {
 
 .fish-card .flag {
   top: 22px;
+}
+
+/* ——— QA: malé telefony (360×740) – „Hrát“ bez posouvání (RYBY-03) ——— */
+.loc-card .loc-record {
+  color: var(--accent-text);
+  font-weight: var(--g92-fw-black);
+}
+
+@media (max-width: 480px) {
+  /* rekord je vidět v kartě místa */
+  .ryby-start .g92-overlay__best {
+    display: none;
+  }
+  .player-strip {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding: 6px 10px;
+  }
+  .player-strip .xp {
+    display: none;
+  }
+  .player-strip .title {
+    font-size: var(--g92-fs-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .player-strip .lvl {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    font-size: var(--g92-fs-lg);
+  }
+  .player-strip .coins-badge {
+    font-size: var(--g92-fs-md);
+    padding: 4px 10px;
+  }
+  /* „Hrát“ přilepené u spodního okraje panelu */
+  .ryby-start .g92-overlay__view:first-child .g92-overlay__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    padding-block: 12px 8px;
+    background: linear-gradient(to bottom, color-mix(in oklab, var(--g92-surface) 0%, transparent), var(--g92-surface) 16px);
+  }
+}
+
+@media (max-width: 480px) and (max-height: 800px) {
+  .loc-blurb {
+    display: none;
+  }
+  .ryby-start .g92-overlay__view:first-child .g92-overlay__title {
+    font-size: var(--g92-fs-2xl);
+  }
+  .loc-card {
+    grid-template-rows: 56px auto auto;
+    padding-bottom: 6px;
+  }
+  .loc-card .thumb,
+  .loc-card .lock {
+    height: 56px;
+  }
+  .ryby-start .g92-difficulty__card {
+    min-height: 60px;
+    padding-block: 6px;
+  }
+  .ryby-start .g92-overlay__view:first-child .g92-overlay__actions > .g92-btn--secondary {
+    display: none;
+  }
+}
+
+/* ——— QA: telefon na šířku – panely alba/obchodu s hlavičkou v jednom řádku (RYBY-13) ——— */
+@media (max-height: 500px) {
+  .sheet {
+    padding-block: 6px;
+  }
+  .sheet__panel {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .sheet__head {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 8px 8px 8px 14px;
+    gap: 8px;
+  }
+  .sheet__head .g92-spacer {
+    display: none;
+  }
+  .sheet__title {
+    font-size: var(--g92-fs-lg);
+  }
+  .sheet__sub {
+    display: none;
+  }
+  .sheet__tabs {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: center;
+    padding: 8px 8px 8px 0;
+  }
+  .sheet__body {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .sheet__head .coins-badge {
+    font-size: var(--g92-fs-sm);
+  }
+  /* nápověda v dialogu: 3 sloupce místo 6 (kit) */
+  .g92-dialog .g92-howto {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }

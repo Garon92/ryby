@@ -6,6 +6,7 @@ import {
   countdown,
   getSettings,
   h,
+  setSettings,
   openSettingsDialog,
   recordActivity,
   sfx,
@@ -50,8 +51,48 @@ const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const pauseBtn = h('button', { type: 'button', slot: 'actions', class: 'g92-btn g92-btn--ghost g92-btn--icon', 'aria-label': 'Pauza (Esc)', title: 'Pauza', html: UI_ICONS.pause, hidden: true });
 appbar.prepend(pauseBtn);
 
-type State = 'start' | 'play' | 'pause' | 'card' | 'results' | 'photo';
+/** start = úvod; play = hraje se; pause = pauza (overlay); modal = hra stojí kvůli dialogu/albu;
+ *  card = karta úlovku; photo = foto režim; results = výsledky */
+type State = 'start' | 'play' | 'pause' | 'modal' | 'card' | 'results' | 'photo';
 let state: State = 'start';
+
+/** Jediné místo, kde se mění stav – drží v souladu tlačítko pauzy, zvuk scény a třídu na <body>. */
+function setState(next: State): void {
+  state = next;
+  const trip = next === 'play' || next === 'pause' || next === 'modal' || next === 'card' || next === 'photo';
+  const wasHidden = pauseBtn.hidden;
+  pauseBtn.hidden = !trip || next === 'card' || next === 'modal';
+  const resume = next === 'pause' || next === 'photo';
+  pauseBtn.innerHTML = resume ? UI_ICONS.play : UI_ICONS.pause;
+  const label = next === 'photo' ? 'Zpět do hry (Esc)' : resume ? 'Pokračovat (Esc)' : 'Pauza (Esc)';
+  pauseBtn.setAttribute('aria-label', label);
+  pauseBtn.title = label;
+  // zvuk scény (okolí, hudba, naviják) jen když se opravdu hraje
+  engine.audio.setActive(next === 'play' || next === 'photo' || next === 'card');
+  document.body.classList.toggle('is-trip', trip);
+  document.body.classList.toggle('is-playing', next === 'play');
+  // lišta si po změně slotu znovu spočítá, jestli se vejde název (kit ≤ 0.6 to sám nepozná)
+  if (wasHidden !== pauseBtn.hidden) appbar.setAttribute('app', 'ryby');
+}
+
+/** Pozastaví hru kvůli dialogu / albu a po zavření ji zase pustí. */
+async function suspendFor<T>(fn: () => Promise<T>): Promise<T> {
+  const wasPlaying = state === 'play';
+  const wasStart = state === 'start';
+  if (wasPlaying) {
+    setState('modal');
+    engine.setPaused(true);
+    hud.toggleBaitPop(false);
+  } else if (wasStart) engine.setPaused(true);
+  try {
+    return await fn();
+  } finally {
+    if (wasPlaying && state === 'modal') {
+      setState('play');
+      engine.setPaused(false);
+    } else if (wasStart && state === 'start') engine.setPaused(false);
+  }
+}
 
 // ————————————————————————————————— engine + hud —————————————————————————————————
 
@@ -101,16 +142,7 @@ const engine = new Engine(canvas, {
 });
 const hud = new Hud(stage);
 hud.onBait = (b) => setBait(b);
-hud.onMissions = async () => {
-  if (state !== 'play') return void openMissions(save);
-  state = 'pause';
-  engine.setPaused(true);
-  await openMissions(save);
-  if (state === 'pause') {
-    state = 'play';
-    engine.setPaused(false);
-  }
-};
+hud.onMissions = () => void suspendFor(() => openMissions(save));
 
 function applyPrefs(): void {
   const p = save.prefs;
@@ -161,16 +193,14 @@ function reportActivity(): void {
 let startUi: { refresh: () => void } | null = null;
 
 function showHome(): void {
-  state = 'start';
+  setState('start');
   session = null;
   engine.attract = true;
   engine.autopilot = false;
   engine.setPaused(false);
-  engine.audio.setQuiet(true);
   engine.difficulty = 'easy';
   hud.show(false);
   hud.clearMessage();
-  pauseBtn.hidden = true;
   stage.classList.add('is-attract');
   if (engine.loc.id !== save.prefs.location && unlockedLocations(save).includes(save.prefs.location)) engine.setLocation(save.prefs.location);
   engine.setClock(save.prefs.clock === 'flow' ? 'day' : save.prefs.clock, false);
@@ -181,7 +211,7 @@ function showHome(): void {
   if (save.prefs.seenHelp && canClaim(save.daily, new Date()) && !dailyOffered) {
     dailyOffered = true;
     setTimeout(() => {
-      if (state === 'start') openDaily(save, onDailyClaim);
+      if (state === 'start') void suspendFor(() => openDaily(save, onDailyClaim));
     }, 700);
   }
 }
@@ -202,18 +232,18 @@ setLocationPreview((id) => {
 async function onStartChoice(c: StartChoice): Promise<void> {
   switch (c.kind) {
     case 'album':
-      await openAlbum(save, { focus: c.focus });
+      await suspendFor(() => openAlbum(save, { focus: c.focus }));
       startUi?.refresh();
       return;
     case 'shop':
-      await openShop(save, () => applyPrefs());
+      await suspendFor(() => openShop(save, () => applyPrefs()));
       startUi?.refresh();
       return;
     case 'missions':
-      void openMissions(save);
+      void suspendFor(() => openMissions(save));
       return;
     case 'daily':
-      openDaily(save, onDailyClaim);
+      void suspendFor(() => openDaily(save, onDailyClaim));
       return;
     case 'play':
       save.prefs.location = c.location;
@@ -231,7 +261,6 @@ async function startSession(): Promise<void> {
   engine.audio.unlock();
   stage.classList.remove('is-attract');
   engine.attract = false;
-  engine.audio.setQuiet(false);
   engine.difficulty = p.difficulty;
   if (engine.loc.id !== p.location) engine.setLocation(p.location);
   else engine.resetRound();
@@ -270,9 +299,8 @@ async function startSession(): Promise<void> {
   hud.setClock(engine.hour, rainy);
   clockShown = -1;
   hud.show(true);
-  pauseBtn.hidden = false;
+  setState('play');
   engine.setPaused(true);
-  state = 'play';
   await countdown({ container: stage });
   if (state !== 'play') return;
   engine.setPaused(false);
@@ -379,7 +407,7 @@ function announceMissions(done: Mission[], into?: string[]): void {
   for (const m of done) {
     session?.completed.push(m);
     if (session) session.coins += m.reward;
-    if (into) into.push(`🎯 Mise splněna: ${missionText(m).text} (+${m.reward} mincí)`);
+    if (into) into.push(`🎯 ${missionText(m).text} ✓ +${m.reward} mincí`);
     else toast(`Mise splněna! +${m.reward} mincí`, { variant: 'success', icon: COIN_SVG });
   }
   sfx.levelUp();
@@ -460,7 +488,7 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
     return;
   }
   if (out.newSpecies || f.trophy || f.rainbow) confetti({ particleCount: 120, origin: { x: 0.5, y: 0.35 } });
-  state = 'card';
+  setState('card');
   engine.setPaused(true);
   hud.clearMessage();
   let toAlbum = false;
@@ -476,7 +504,7 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
   if (toAlbum) await openAlbum(save, { focus: f.species.id });
   speech.stop();
   if (state === 'card') {
-    state = 'play';
+    setState('play');
     engine.setPaused(false);
   }
 }
@@ -488,9 +516,10 @@ let pauseOverlay: ReturnType<typeof showPause> | null = null;
 async function pause(): Promise<void> {
   if (state !== 'play' || pausing) return;
   pausing = true;
-  state = 'pause';
+  setState('pause');
   engine.setPaused(true);
   hud.clearMessage();
+  hud.toggleBaitPop(false);
   const s = session;
   const photoBtn = h('button', { type: 'button', class: 'g92-btn g92-btn--soft g92-btn--lg' }, '📷 Fotka');
   const albumB = h('button', { type: 'button', class: 'g92-btn g92-btn--soft g92-btn--lg' }, '📖 Album');
@@ -505,7 +534,7 @@ async function pause(): Promise<void> {
         ]
       : [],
     menuHref: null,
-    menuLabel: 'Ukončit',
+    menuLabel: 'Ukončit hru',
     extra,
   }));
   photoBtn.addEventListener('click', () => ov.close('photo' as 'resume'));
@@ -516,20 +545,19 @@ async function pause(): Promise<void> {
   if (choice === 'photo') return photoMode();
   if (choice === 'album') {
     await openAlbum(save);
-    state = 'play';
+    setState('play');
     return pause();
   }
-  if (choice === 'restart') {
-    state = 'play';
-    return startSession();
-  }
-  if (choice === 'menu') return endSession();
-  state = 'play';
+  if (choice === 'restart') return startSession();
+  if (choice === 'menu') return endSession(true);
+  setState('play');
   engine.setPaused(false);
 }
 
+let exitPhoto: (() => void) | null = null;
+
 function photoMode(): void {
-  state = 'photo';
+  setState('photo');
   hud.show(false);
   engine.setPaused(false);
   const save_ = h('button', { type: 'button', class: 'g92-btn g92-btn--secondary' }, '💾 Uložit obrázek');
@@ -544,26 +572,29 @@ function photoMode(): void {
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     sfx.success();
   });
-  back.addEventListener('click', () => {
+  exitPhoto = () => {
+    exitPhoto = null;
     bar.remove();
     hud.show(true);
-    state = 'play';
+    setState('play');
     void pause();
-  });
+  };
+  back.addEventListener('click', () => exitPhoto?.());
 }
 
-async function endSession(): Promise<void> {
+/** Konec výpravy. `aborted` = hráč ji ukončil dřív (nepočítá se rekord ani hvězdy). */
+async function endSession(aborted = false): Promise<void> {
   const s = session;
   if (!s || state === 'results') return;
-  state = 'results';
+  setState('results');
   engine.setPaused(true);
   engine.reelHeld = false;
   hud.show(false);
   hud.clearMessage();
-  pauseBtn.hidden = true;
+  const early = aborted && (s.mode === 'free' ? false : s.timeLeft > 0);
   let best = save.records[recordKey(s.location, s.difficulty)] ?? 0;
   let isNewBest = false;
-  if (s.mode === 'timed' && s.scoring && s.score > best) {
+  if (s.mode === 'timed' && s.scoring && !early && s.score > best) {
     best = s.score;
     isNewBest = true;
     save.records[recordKey(s.location, s.difficulty)] = s.score;
@@ -584,6 +615,7 @@ async function endSession(): Promise<void> {
     trophies: s.trophies,
     seconds: s.elapsed,
     scoring: s.scoring,
+    aborted: early,
   });
   if (choice === 'again') return startSession();
   if (choice === 'album') await openAlbum(save);
@@ -627,11 +659,35 @@ canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
 window.addEventListener('keydown', (e) => {
-  if (state !== 'play' || isTyping(e.target) || document.querySelector('dialog[open], .sheet')) return;
+  if (isTyping(e.target) || document.querySelector('dialog[open], .sheet')) return;
   const k = e.key;
+  // foto režim: Esc / P = zpět do hry
+  if (state === 'photo' && (k === 'Escape' || k === 'p' || k === 'P')) {
+    e.preventDefault();
+    exitPhoto?.();
+    return;
+  }
+  if (state !== 'play') return;
+  if (k === 'Escape' && hud.baitMenuOpen) {
+    // Esc nejdřív zavře nabídku návnad
+    e.preventDefault();
+    hud.toggleBaitPop(false);
+    return;
+  }
   if (k === 'Escape' || k === 'p' || k === 'P') {
     e.preventDefault();
     void pause();
+    return;
+  }
+  if (k === 'm' || k === 'M') {
+    // M = zvuk, F = celá obrazovka (jako v ostatních hrách)
+    e.preventDefault();
+    setSettings({ sound: !getSettings().sound });
+    return;
+  }
+  if (k === 'f' || k === 'F') {
+    e.preventDefault();
+    void (appbar as HTMLElement & { toggleFullscreen?: () => Promise<void> }).toggleFullscreen?.();
     return;
   }
   if (engine.autopilot) return;
@@ -660,34 +716,25 @@ window.addEventListener('keyup', (e) => {
 
 // tlačítko v liště: pauza / pokračovat
 pauseBtn.addEventListener('click', () => {
-  if (pauseOverlay) pauseOverlay.close('resume');
+  if (state === 'photo') exitPhoto?.();
+  else if (pauseOverlay) pauseOverlay.close('resume');
   else void pause();
 });
 
 // nápověda z lišty: během hry hru pozastaví
 appbar.addEventListener('g92-help', (e) => {
   e.preventDefault();
-  const wasPlaying = state === 'play';
-  if (wasPlaying) {
-    state = 'pause';
-    engine.setPaused(true);
-  }
-  const d = showHelp();
-  void (d?.closed ?? Promise.resolve()).then(() => {
-    if (wasPlaying && state === 'pause') {
-      state = 'play';
-      engine.setPaused(false);
-    }
+  void suspendFor(async () => {
+    await showHelp()?.closed;
   });
 });
 
 appbar.addEventListener('g92-settings', (e) => {
   e.preventDefault();
-  const wasPlaying = state === 'play';
-  if (wasPlaying) {
-    state = 'pause';
-    engine.setPaused(true);
-  }
+  void suspendFor(() => openSettings());
+});
+
+function openSettings(): Promise<unknown> {
   const d = openSettingsDialog({
     extra: settingsExtra(
       save,
@@ -704,13 +751,8 @@ appbar.addEventListener('g92-settings', (e) => {
       },
     ),
   });
-  void d.closed.then(() => {
-    if (wasPlaying && state === 'pause') {
-      state = 'play';
-      engine.setPaused(false);
-    }
-  });
-});
+  return d.closed;
+}
 
 autoPause(() => {
   if (state === 'play') void pause();
