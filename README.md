@@ -17,7 +17,8 @@ zasekneš a zdoláš rybu – a každý nový druh se uloží do **alba**, kter�
 - **Trofeje** (20 úspěchů: sběratel, pán rybníka, obr přes metr, noční rybář…), **ryba dne** na úvodní
   obrazovce, hvězdy výpravy rozsvěcované už během hry.
 - **Návnady:** žížala, kukuřice, třpytka, muška – každá láká jiné ryby (podle toho, co ryba opravdu jí).
-- **Tři obtížnosti:** 🐣 Mrňous (ryba se zasekne sama, vlasec nepraskne), 🎣 Rybář, 🏆 Mistr.
+- **Tři obtížnosti** jako v ostatních hrách: 🐢 Lehká (Mrňous – ryba se zasekne sama, vlasec nepraskne),
+  🐇 Normální (Rybář), 🔥 Těžká (Mistr).
 - **Režimy:** ⏱️ Výprava na 3 minuty (body, hvězdy, rekordy pro každé místo a obtížnost) a ♾️ Volné chytání.
 - **Autopilot** pro nejmenší – rybář chytá sám, ryby se ukládají do alba (bez mincí a bodů).
 - **Odměny:** mince za úlovky, mise (3 najednou, po splnění hned další), denní odměna se sérií 7 dní,
@@ -25,9 +26,11 @@ zasekneš a zdoláš rybu – a každý nový druh se uloží do **alba**, kter�
 - **Obchod:** pruty, splávky, návnady a klobouky pro rybáře.
 - **Chráněné ryby** se vyfotí do alba a pustí zpět do vody (hra to dítěti vysvětlí).
 - Ovládání **myší, dotykem i klávesnicí** (mezerník = nahodit / zaseknout / držet = navíjet, šipky = mířit,
-  B = návnada, Esc/P = pauza, M = zvuk, F = celá obrazovka), auto-pauza při přepnutí záložky, světlý i tmavý vzhled.
-- **Předčítání** názvů ryb českým hlasem je samostatný přepínač (zvuk v liště řídí jen efekty a hudbu);
-  tlačítko „Poslechnout“ v albu mluví vždy.
+  B = návnada, Esc/P = pauza, M = zvuk, F = celá obrazovka, ? = nápověda), auto-pauza při přepnutí záložky
+  i při otevřeném dialogu, světlý i tmavý vzhled.
+- **Předčítání** názvů ryb je rodinné nastavení kitu (⚙ → Předčítání; zvuk v liště řídí jen efekty a hudbu);
+  tlačítko „Poslechnout“ mluví vždy.
+- **„Menu“ v liště během výpravy** hru pozastaví a zeptá se „Odejít do menu?“ (výchozí je Zůstat).
 
 ## Vývoj
 

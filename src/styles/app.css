@@ -1378,16 +1378,6 @@ html[data-scheme='dark'] .fish-card.is-locked img {
   font-size: var(--g92-fs-sm);
 }
 
-/* hlavní tlačítka karet a výsledků zůstávají vidět i při delším obsahu (QA RYBY-02) */
-.catch-card .g92-overlay__actions,
-.g92-overlay--results .g92-overlay__actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  padding-block: 12px 10px;
-  background: linear-gradient(to bottom, color-mix(in oklab, var(--g92-surface) 0%, transparent), var(--g92-surface) 16px);
-}
-
 .results-catches figure {
   margin: 0;
   display: grid;
@@ -1444,8 +1434,7 @@ body.is-trip .g92-toasts {
   -webkit-user-select: none;
 }
 
-/* hry: v overlayích a panelech jen svislé posouvání, žádné nechtěné přiblížení (C-27) */
-.g92-overlay,
+/* panely alba a obchodu: jen svislé posouvání, žádné přiblížení (overlaye a dialogy řeší html.g92-game, C-27) */
 .sheet {
   touch-action: pan-y;
 }
@@ -1881,14 +1870,6 @@ html[data-scheme='dark'] .fod.is-locked .fod__pic img {
   .player-strip .coins-badge {
     font-size: var(--g92-fs-md);
     padding: 4px 10px;
-  }
-  /* „Hrát“ přilepené u spodního okraje panelu */
-  .ryby-start .g92-overlay__view:first-child .g92-overlay__actions {
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
-    padding-block: 12px 8px;
-    background: linear-gradient(to bottom, color-mix(in oklab, var(--g92-surface) 0%, transparent), var(--g92-surface) 16px);
   }
 }
 

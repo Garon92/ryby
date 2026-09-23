@@ -1,4 +1,4 @@
-import { confirmDialog, h, sfx, toast } from '../kit';
+import { confirmDialog, h, sfx } from '../kit';
 import { SPECIES } from '../data/species';
 import { speech } from '../game/speech';
 import { levelInfo } from '../game/logic/progress';
@@ -26,14 +26,8 @@ export function settingsExtra(save: Save, apply: () => void, onReset: () => void
       apply();
     }),
   );
-  const voiceHint = speech.available ? 'Po úlovku přečte název ryby česky (i když je zvuk vypnutý)' : 'Tento prohlížeč nemá český hlas – názvy se jen zobrazí';
-  const voice = toggle('ry-voice', 'Předčítání', voiceHint, p.voice && speech.available, (v) => {
-    p.voice = v;
-    apply();
-    if (v) speech.speak('Kapr obecný', { force: true });
-  });
-  if (!speech.available) (voice.querySelector('input') as HTMLInputElement).disabled = true;
-  wrap.append(voice);
+  // „Předčítání“ je přepínač kitu nahoře v dialogu; tady jen upozornění, když zařízení nemá český hlas
+  if (!speech.available) wrap.append(h('p', { class: 'g92-hint' }, 'Tento prohlížeč nemá český hlas – názvy ryb se jen zobrazí.'));
   wrap.append(
     toggle('ry-hints', 'Nápověda', 'Šipka ukáže rybu, když dlouho nic nechytáš', p.hints, (v) => {
       p.hints = v;
@@ -85,14 +79,11 @@ export function settingsExtra(save: Save, apply: () => void, onReset: () => void
   reset.addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: 'Smazat celý postup?',
-      message: 'Zmizí album, mince, úroveň i koupené věci. Tohle nejde vrátit.',
+      message: 'Zmizí album, mince, úroveň, koupené věci i nastavení Ryb. Tohle nejde vrátit.',
       confirmLabel: 'Smazat',
       danger: true,
     });
-    if (ok) {
-      onReset();
-      toast('Postup smazán. Hezké chytání od začátku!');
-    }
+    if (ok) onReset();
   });
   wrap.append(h('div', { class: 'g92-row' }, reset));
   return wrap;

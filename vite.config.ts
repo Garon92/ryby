@@ -1,7 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { g92Pwa } from './src/kit/pwa.ts';
+import { g92NotFoundPage, g92Pwa } from './src/kit/pwa.ts';
 
 export default defineConfig({
   base: '/ryby/',
@@ -14,7 +14,6 @@ export default defineConfig({
   plugins: [
     VitePWA(
       g92Pwa('ryby', {
-        name: 'Ryby – rybářská hra',
         description: 'Nahoď prut a chytej české ryby v rybníce, řece, potoce i na přehradě. Album 59 druhů, mise a odměny.',
         // předem jen aplikace + malé náhledy ryb (album offline); velké obrázky ryb se ukládají až při použití
         // (dřív se na pozadí stahoval celý atlas 2+ MB – QA RYBY-12), italic písma se nepoužívají
@@ -28,6 +27,8 @@ export default defineConfig({
         ],
       }),
     ),
+    // česká stránka 404 s tlačítkem zpět do hry (C-23)
+    g92NotFoundPage('ryby'),
   ],
   test: {
     include: ['tests/**/*.test.ts'],

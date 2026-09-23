@@ -1,4 +1,4 @@
-import { h, showResults, UI_ICONS } from '../kit';
+import { h, LABEL_ICONS, LABELS, showResults } from '../kit';
 import { getSpecies } from '../data/species';
 import type { Mission } from '../game/logic/missions';
 import type { Achievement } from '../game/logic/achievements';
@@ -55,23 +55,7 @@ export function openResults(sum: SessionSummary): Promise<string> {
     n === 0 && !sum.aborted
       ? 'Zkus jiné místo nebo jinou návnadu.'
       : `${n} ${plural(n, 'ryba', 'ryby', 'ryb')} za ${minutes} min`;
-  const p = showResults({
-    title,
-    subtitle,
-    score: sum.scoring ? sum.score : undefined,
-    scoreLabel: plural(sum.score, 'bod', 'body', 'bodů'),
-    best: withStars ? sum.best : null,
-    isNewBest: withStars && sum.isNewBest && sum.score > 0,
-    stars,
-    stats,
-    actions: [
-      { label: 'Domů', value: 'home', variant: 'secondary', icon: UI_ICONS.home },
-      { label: 'Album', value: 'album', variant: 'secondary', icon: '<span aria-hidden="true">📖</span>' },
-    ],
-    lost: n === 0 && !sum.aborted,
-  });
-
-  // úlovky a novinky až POD tlačítky – hlavní tlačítko musí zůstat vidět (QA RYBY-02)
+  // úlovky a novinky nad tlačítky; kit tlačítka přišpendlí dole, takže hlavní zůstává vidět (QA RYBY-02)
   const extra = h('div', { class: 'results-extra' });
   if (n) {
     const strip = h('div', { class: 'results-catches', 'aria-label': 'Úlovky' });
@@ -104,6 +88,21 @@ export function openResults(sum: SessionSummary): Promise<string> {
   if (sum.trophies.length) chip('🏆', `${sum.trophies.length} ${plural(sum.trophies.length, 'trofej', 'trofeje', 'trofejí')}`, `Nové trofeje: ${sum.trophies.map((t) => t.name).join(', ')}`);
   if (!sum.scoring) chip('🤖', 'autopilot', 'Autopilot: ryby jsou v albu, body a mince se nepočítají');
   if (chips.childElementCount) extra.append(chips);
-  if (extra.childElementCount) p.el.querySelector('.g92-overlay__actions')?.after(extra);
+  const p = showResults({
+    title,
+    subtitle,
+    score: sum.scoring ? sum.score : undefined,
+    scoreLabel: ['bod', 'body', 'bodů'],
+    best: withStars ? sum.best : null,
+    isNewBest: withStars && sum.isNewBest && sum.score > 0,
+    stars,
+    stats,
+    actions: [
+      { label: LABELS.home, value: 'home', variant: 'secondary', icon: LABEL_ICONS.home },
+      { label: 'Album', value: 'album', variant: 'secondary', icon: '<span aria-hidden="true">📖</span>' },
+    ],
+    lost: n === 0 && !sum.aborted,
+    extra: extra.childElementCount ? extra : undefined,
+  });
   return p;
 }

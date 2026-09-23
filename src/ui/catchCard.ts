@@ -1,4 +1,4 @@
-import { h, sfx, UI_ICONS } from '../kit';
+import { h, LABELS, sfx, UI_ICONS } from '../kit';
 import type { Species } from '../data/species';
 import type { CatchOutcome } from '../game/rewards';
 import { speech } from '../game/speech';
@@ -59,7 +59,7 @@ export function showCatchCard(o: CatchCardOpts): Promise<void> {
   }
 
   const cont = h('button', { type: 'button', class: 'g92-btn g92-btn--xl g92-btn--block', 'data-primary': true, html: UI_ICONS.play });
-  cont.append('Pokračovat');
+  cont.append(LABELS.resume);
   const row = h('div', { class: 'g92-overlay__row' });
   const listen = h('button', { type: 'button', class: 'g92-btn g92-btn--secondary g92-btn--lg', html: UI_ICONS.soundOn });
   listen.append('Poslechnout');
@@ -74,13 +74,13 @@ export function showCatchCard(o: CatchCardOpts): Promise<void> {
     });
     row.append(album);
   }
-  panel.append(h('div', { class: 'g92-overlay__actions catch-actions' }, cont, row));
-  // splněné mise, trofeje, nová úroveň – až pod tlačítky (hlavní tlačítko musí být vidět, QA RYBY-02)
+  // splněné mise, trofeje, nová úroveň – nad tlačítky; tlačítka kit přišpendlí dole (QA RYBY-02)
   if (o.notes?.length) {
     const list = h('div', { class: 'catch-notes' });
     for (const n of o.notes) list.append(h('div', null, n));
     panel.append(list);
   }
+  panel.append(h('div', { class: 'g92-overlay__actions catch-actions' }, cont, row));
   document.body.append(root);
   requestAnimationFrame(() => cont.focus({ preventScroll: true }));
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { describeMission } from '../src/game/logic/missions';
 import { fishOfDay } from '../src/game/logic/fishOfDay';
-import { defaultSave } from '../src/store/save';
+import { defaultSave, legacyVoiceOff, normalizeSave } from '../src/store/save';
 
 describe('QA round', () => {
   it('RYBY-09: fish of the day is always catchable for the player', () => {
@@ -32,5 +32,17 @@ describe('QA round', () => {
     expect(count(1)).toBe('Chyť 1 rybu');
     expect(count(3)).toBe('Chyť 3 ryby');
     expect(count(6)).toBe('Chyť 6 ryb');
+  });
+
+  it('C-13: the old ryby "Hlas" switch migrates to the kit voice setting only when it was turned off', () => {
+    expect(legacyVoiceOff({ prefs: { voice: false } })).toBe(true);
+    expect(legacyVoiceOff({ prefs: { voice: true } })).toBe(false);
+    expect(legacyVoiceOff({ prefs: {} })).toBe(false);
+    expect(legacyVoiceOff(null)).toBe(false);
+    expect(legacyVoiceOff('junk')).toBe(false);
+    // the normalized save no longer carries its own voice flag
+    const s = normalizeSave({ prefs: { voice: false, music: false } });
+    expect('voice' in s.prefs).toBe(false);
+    expect(s.prefs.music).toBe(false);
   });
 });

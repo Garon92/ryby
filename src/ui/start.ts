@@ -1,4 +1,4 @@
-import { getSettings, greeting, h, setHelp, sfx, showStart, UI_ICONS } from '../kit';
+import { DIFFICULTIES_3, getPlayerName, greeting, h, setHelp, sfx, showStart, UI_ICONS } from '../kit';
 import { LOCATIONS, LOCATION_BY_ID, type LocationDef } from '../data/locations';
 import type { LocationId } from '../data/species';
 import { canClaim } from '../game/logic/daily';
@@ -6,7 +6,7 @@ import { isDone } from '../game/logic/missions';
 import { levelInfo } from '../game/logic/progress';
 import { albumProgress, unlockedLocations } from '../game/rewards';
 import { Scene } from '../game/scene/scene';
-import { DIFFICULTY_LABEL, MODE_LABEL, type Difficulty, type GameMode } from '../game/types';
+import { MODE_LABEL, type Difficulty, type GameMode } from '../game/types';
 import { computeWorld } from '../game/world';
 import type { ClockMode, Save } from '../store/save';
 import { fmtNum } from './common';
@@ -30,6 +30,13 @@ export const HOW_TO_FULL = [
   { icon: '💚', text: 'Chráněné ryby vyfotíme do alba a pustíme zpátky do vody.' },
 ];
 
+/** Rodinné obtížnosti Lehká / Normální / Těžká – rybářská jména jsou nápověda (C-12). */
+export const DIFFICULTY_HINT: Record<Difficulty, string> = {
+  easy: 'Mrňous · ryba se chytí sama',
+  normal: 'Rybář · zasekni a hlídej vlasec',
+  hard: 'Mistr · silné a rychlé ryby',
+};
+
 export const KEYS = [
   { keys: ['Mezerník', 'Enter'], text: 'nahodit · zaseknout · držet = navíjet' },
   { keys: ['←', '→', '↑', '↓'], text: 'mířit, kam nahodit' },
@@ -37,6 +44,7 @@ export const KEYS = [
   { keys: ['Esc', 'P'], text: 'pauza' },
   { keys: ['M'], text: 'zvuk zapnout / vypnout' },
   { keys: ['F'], text: 'celá obrazovka' },
+  { keys: ['?'], text: 'nápověda' },
 ];
 
 export type StartChoice =
@@ -92,26 +100,23 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
     clock: save.prefs.clock,
     difficulty: save.prefs.difficulty,
   };
+  const player = getPlayerName('ryby').trim();
   const p = showStart({
     appId: 'ryby',
     className: 'ryby-start',
     backdrop: 'blur',
     compact: true,
-    difficulties: (Object.keys(DIFFICULTY_LABEL) as Difficulty[]).map((d) => ({
-      id: d,
-      label: DIFFICULTY_LABEL[d].name,
-      icon: DIFFICULTY_LABEL[d].icon,
-      hint: DIFFICULTY_LABEL[d].hint,
-    })),
+    difficulties: DIFFICULTIES_3.map((d) => ({ ...d, hint: DIFFICULTY_HINT[d.id] })),
     difficulty: st.difficulty,
     best: null,
     howTo: HOW_TO,
     keys: KEYS,
     showHowTo: !save.prefs.seenHelp,
-    // se jménem z nastavení kitu přátelský pozdrav („Dobré ráno, Adámku!“)
-    subtitle: getSettings().playerName.trim() ? `${greeting(getSettings().playerName.trim())} Jdeme na ryby?` : undefined,
+    // se jménem hráče přátelský pozdrav („Dobré ráno, Adámku!“), jinak rybářská nálada
+    subtitle: player ? `${greeting(player)} Jdeme na ryby?` : 'Rybařit! Kam to dnes bude?',
   });
-  setHelp({ title: 'Jak hrát', howTo: HOW_TO_FULL, keys: KEYS });
+  // titulek „Jak hrát“ doplní kit sám (hra)
+  setHelp({ howTo: HOW_TO_FULL, keys: KEYS });
   const root = p.el;
   const main = root.querySelector('.g92-overlay__view') as HTMLElement;
   const diffSection = main.querySelector('.g92-overlay__section') as HTMLElement | null;

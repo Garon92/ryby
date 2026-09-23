@@ -8,6 +8,13 @@ import { normalizeLegacyDate } from '../game/logic/daily';
 
 export const SAVE_KEY = 'g92:ryby:save';
 export const SAVE_VERSION = 1;
+
+/** Ryby měly vlastní přepínač „Hlas“ (prefs.voice); od kitu v0.7 platí rodinné „Předčítání“ (settings.voice).
+ *  Kdo hlas v Rybách vypnul, má ho vypnutý i v kitu. */
+export function legacyVoiceOff(raw: unknown): boolean {
+  if (!isObj(raw) || !isObj(raw.prefs)) return false;
+  return raw.prefs.voice === false;
+}
 /** klíče původní hry (sdílený origin → po migraci mažeme) */
 export const LEGACY_KEYS = ['bestScore', 'coins', 'rodSkinIdx', 'ownedSkins', 'dailyRewardDate', 'prefs'] as const;
 
@@ -29,7 +36,6 @@ export interface Prefs {
   difficulty: Difficulty;
   clock: ClockMode;
   music: boolean;
-  voice: boolean;
   hints: boolean;
   effects: 'full' | 'lite';
   autopilot: boolean;
@@ -101,7 +107,6 @@ export function defaultSave(): Save {
       difficulty: 'easy',
       clock: 'flow',
       music: true,
-      voice: true,
       hints: true,
       effects: 'full',
       autopilot: false,
@@ -195,7 +200,6 @@ export function normalizeSave(raw: unknown): Save {
     s.prefs.difficulty = oneOf(p.difficulty, DIFFS, 'easy');
     s.prefs.clock = oneOf(p.clock, ['flow', 'day', 'night'] as const, 'flow');
     s.prefs.music = bool(p.music, true);
-    s.prefs.voice = bool(p.voice, true);
     s.prefs.hints = bool(p.hints, true);
     s.prefs.effects = oneOf(p.effects, ['full', 'lite'] as const, 'full');
     s.prefs.autopilot = bool(p.autopilot, false);

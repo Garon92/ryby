@@ -112,7 +112,7 @@ async function run(e: EngineT, seconds: number, onSecond: (t: number) => void): 
 }
 
 describe('engine long run', () => {
-  it('keeps the pond full of visible fish and keeps catching for 6 minutes (autopilot, Rybář)', async () => {
+  it('keeps the pond full of visible fish and keeps catching for 6 minutes (autopilot, Normální)', async () => {
     const { e, catches } = makeEngine('rybnik');
     const perMinute: number[] = [];
     let last = 0;

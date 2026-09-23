@@ -1,16 +1,20 @@
 import './kit/kit.css';
 import './styles/app.css';
 import {
+  appbarPauseButton,
   autoPause,
   confetti,
   countdown,
+  getPlayerName,
   getSettings,
+  guardLeave,
   h,
-  setSettings,
-  openSettingsDialog,
+  LABELS,
+  onDialogChange,
   recordActivity,
+  resetApp,
+  setSettingsSection,
   sfx,
-  showHelp,
   showPause,
   subscribeSettings,
   toast,
@@ -30,7 +34,7 @@ import { albumProgress, applyCatch, applyPerfect, checkAchievements, ensureMissi
 import type { Achievement } from './game/logic/achievements';
 import { speech } from './game/speech';
 import { TIMED_SECONDS, type CatchEvent, type Difficulty, type GameMode } from './game/types';
-import { persist, resetSave, save } from './store';
+import { persist, save, wipeSave } from './store';
 import { openAlbum } from './ui/album';
 import { COIN_SVG } from './ui/icons';
 import { fmtTime } from './ui/common';
@@ -45,11 +49,15 @@ import type { ClockMode } from './store/save';
 
 // ————————————————————————————————— DOM —————————————————————————————————
 
-const appbar = document.querySelector('g92-appbar') as HTMLElement;
 const stage = document.getElementById('stage') as HTMLElement;
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
-const pauseBtn = h('button', { type: 'button', slot: 'actions', class: 'g92-btn g92-btn--ghost g92-btn--icon', 'aria-label': 'Pauza (Esc)', title: 'Pauza', html: UI_ICONS.pause, hidden: true });
-appbar.prepend(pauseBtn);
+// tlačítko pauzy v liště (kit): pauza / pokračovat / zpět z fotky
+const pauseBtn = appbarPauseButton(() => {
+  if (state === 'photo') exitPhoto?.();
+  else if (pauseOverlay) pauseOverlay.close('resume');
+  else void pause();
+});
+pauseBtn.hidden = true;
 
 /** start = úvod; play = hraje se; pause = pauza (overlay); modal = hra stojí kvůli dialogu/albu;
  *  card = karta úlovku; photo = foto režim; results = výsledky */
@@ -60,23 +68,27 @@ let state: State = 'start';
 function setState(next: State): void {
   state = next;
   const trip = next === 'play' || next === 'pause' || next === 'modal' || next === 'card' || next === 'photo';
-  const wasHidden = pauseBtn.hidden;
   pauseBtn.hidden = !trip || next === 'card' || next === 'modal';
   const resume = next === 'pause' || next === 'photo';
   pauseBtn.innerHTML = resume ? UI_ICONS.play : UI_ICONS.pause;
-  const label = next === 'photo' ? 'Zpět do hry (Esc)' : resume ? 'Pokračovat (Esc)' : 'Pauza (Esc)';
+  const label = next === 'photo' ? 'Zpět do hry (Esc)' : resume ? `${LABELS.resume} (Esc)` : `${LABELS.pause} (Esc)`;
   pauseBtn.setAttribute('aria-label', label);
   pauseBtn.title = label;
   // zvuk scény (okolí, hudba, naviják) jen když se opravdu hraje
   engine.audio.setActive(next === 'play' || next === 'photo' || next === 'card');
   document.body.classList.toggle('is-trip', trip);
   document.body.classList.toggle('is-playing', next === 'play');
-  // lišta si po změně slotu znovu spočítá, jestli se vejde název (kit ≤ 0.6 to sám nepozná)
-  if (wasHidden !== pauseBtn.hidden) appbar.setAttribute('app', 'ryby');
+}
+
+/** Běží výprava (i v pauze, pod kartou úlovku nebo dialogem)? */
+function tripActive(): boolean {
+  return session !== null && (state === 'play' || state === 'pause' || state === 'modal' || state === 'card' || state === 'photo');
 }
 
 /** Pozastaví hru kvůli dialogu / albu a po zavření ji zase pustí. */
+let suspended = 0;
 async function suspendFor<T>(fn: () => Promise<T>): Promise<T> {
+  suspended++;
   const wasPlaying = state === 'play';
   const wasStart = state === 'start';
   if (wasPlaying) {
@@ -87,6 +99,7 @@ async function suspendFor<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } finally {
+    suspended--;
     if (wasPlaying && state === 'modal') {
       setState('play');
       engine.setPaused(false);
@@ -149,8 +162,8 @@ function applyPrefs(): void {
   const s = getSettings();
   engine.audio.setEnabled(s.sound, p.music);
   engine.audio.setVolume(s.volume);
-  // hlas je samostatné nastavení („Předčítání“), zvuk = efekty a hudba (QA C-13)
-  speech.enabled = p.voice;
+  // automatické čtení řídí „Předčítání“ z kitu, zvuk = efekty a hudba (QA C-13); „Poslechnout“ mluví vždy
+  speech.enabled = s.voice;
   engine.hints = p.hints;
   engine.setLite(p.effects === 'lite' || document.documentElement.dataset.motion === 'reduce');
   engine.autopilot = p.autopilot && state !== 'start';
@@ -186,7 +199,13 @@ function cycleBait(): void {
 function reportActivity(): void {
   const alb = albumProgress(save);
   const lvl = levelInfo(save.xp).level;
-  recordActivity('ryby', { metric: { label: 'Album', value: `${alb.caught}/${alb.total}` }, progress: alb.caught / alb.total, note: `Úroveň ${lvl}` });
+  const loc = LOCATION_BY_ID[save.prefs.location] ?? LOCATION_BY_ID.rybnik;
+  recordActivity('ryby', {
+    metric: { label: 'Album', value: alb.caught, of: alb.total, unit: ['ryba', 'ryby', 'ryb'] },
+    progress: alb.caught / alb.total,
+    note: `${loc.name} · úroveň ${lvl}`,
+    href: '/ryby/',
+  });
 }
 
 // ————————————————————————————————— start —————————————————————————————————
@@ -482,7 +501,7 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
   persist();
   reportActivity();
   engine.audio.play(out.newSpecies || f.trophy || f.rainbow ? 'fanfare' : 'catch');
-  const name = getSettings().playerName.trim();
+  const name = getPlayerName('ryby').trim();
   speech.speak(out.newSpecies ? `${name ? `Výborně, ${vocative(name)}! ` : ''}Nový druh! ${f.species.name}` : f.species.name);
   if (!big) {
     showMiniCatch(stage, f.species, f.sizeCm, s.scoring ? out.points.points : null);
@@ -534,8 +553,7 @@ async function pause(): Promise<void> {
           ...(s.mode === 'timed' ? [{ label: 'Zbývá', value: fmtTime(s.timeLeft) }] : []),
         ]
       : [],
-    menuHref: null,
-    menuLabel: 'Ukončit hru',
+    quit: true,
     extra,
   }));
   photoBtn.addEventListener('click', () => ov.close('photo' as 'resume'));
@@ -550,7 +568,9 @@ async function pause(): Promise<void> {
     return pause();
   }
   if (choice === 'restart') return startSession();
-  if (choice === 'menu') return endSession(true);
+  if (choice === 'quit') return endSession(true);
+  // „Menu“ = kit odchází do /menu/ sám
+  if (choice === 'menu') return;
   setState('play');
   engine.setPaused(false);
 }
@@ -680,17 +700,6 @@ window.addEventListener('keydown', (e) => {
     void pause();
     return;
   }
-  if (k === 'm' || k === 'M') {
-    // M = zvuk, F = celá obrazovka (jako v ostatních hrách)
-    e.preventDefault();
-    setSettings({ sound: !getSettings().sound });
-    return;
-  }
-  if (k === 'f' || k === 'F') {
-    e.preventDefault();
-    void (appbar as HTMLElement & { toggleFullscreen?: () => Promise<void> }).toggleFullscreen?.();
-    return;
-  }
   if (engine.autopilot) return;
   if (k === ' ' || k === 'Enter') {
     const target = e.target as HTMLElement | null;
@@ -715,49 +724,74 @@ window.addEventListener('keyup', (e) => {
   if (e.key === ' ' || e.key === 'Enter') engine.reelHeld = false;
 });
 
-// tlačítko v liště: pauza / pokračovat
-pauseBtn.addEventListener('click', () => {
-  if (state === 'photo') exitPhoto?.();
-  else if (pauseOverlay) pauseOverlay.close('resume');
-  else void pause();
+// Dialogy kitu (nápověda, nastavení, potvrzení…) hru pozastaví a po zavření ji zase pustí (C-05).
+// Úvodní obrazovka za dialogem stojí (nekreslí se zbytečně).
+let dialogHold: 'play' | 'start' | null = null;
+onDialogChange((open) => {
+  if (open) {
+    if (dialogHold || suspended) return;
+    if (state === 'play') {
+      dialogHold = 'play';
+      setState('modal');
+      engine.setPaused(true);
+      engine.reelHeld = false;
+      hud.toggleBaitPop(false);
+    } else if (state === 'start') {
+      dialogHold = 'start';
+      engine.setPaused(true);
+    }
+    return;
+  }
+  const was = dialogHold;
+  dialogHold = null;
+  if (was === 'play' && state === 'modal') {
+    setState('play');
+    engine.setPaused(false);
+  } else if (was === 'start' && state === 'start') engine.setPaused(false);
 });
 
-// nápověda z lišty: během hry hru pozastaví
-appbar.addEventListener('g92-help', (e) => {
-  e.preventDefault();
-  void suspendFor(async () => {
-    await showHelp()?.closed;
-  });
-});
-
-appbar.addEventListener('g92-settings', (e) => {
-  e.preventDefault();
-  void suspendFor(() => openSettings());
-});
-
-function openSettings(): Promise<unknown> {
-  const d = openSettingsDialog({
-    extra: settingsExtra(
+// ⚙ v liště = dialog kitu + sekce Ryby
+let resetting = false;
+setSettingsSection({
+  showVoice: true,
+  extra: () =>
+    settingsExtra(
       save,
       () => {
         applyPrefs();
         startUi?.refresh();
       },
       () => {
-        resetSave();
-        ensureMissions(save, Math.random);
-        applyPrefs();
-        d.close();
-        if (state === 'start') location.reload();
+        // celý reset rodinným způsobem: g92:ryby:* + záznam v menu, pak znovu načíst
+        resetting = true;
+        wipeSave();
+        resetApp('ryby');
+        try {
+          sessionStorage.setItem('ryby:reset', '1');
+        } catch {
+          /* soukromý režim */
+        }
+        location.reload();
       },
     ),
-  });
-  return d.closed;
-}
-
-autoPause(() => {
-  if (state === 'play') void pause();
 });
+
+// „Menu“ v liště během výpravy: pauza + „Odejít do menu?“ (C-01)
+guardLeave({
+  isActive: () => tripActive() && !resetting,
+  onPause: () => {
+    if (state === 'photo') exitPhoto?.();
+    else void pause();
+  },
+  message: 'Výprava skončí bez rekordu. Ulovené ryby ti v albu zůstanou.',
+});
+
+autoPause(
+  () => {
+    if (state === 'play') void pause();
+  },
+  { onDialog: false },
+);
 
 window.addEventListener('resize', () => engine.resize());
 new ResizeObserver(() => engine.resize()).observe(stage);
@@ -775,6 +809,14 @@ setTimeout(() => {
   persist();
   startUi?.refresh();
 }, 1200);
+try {
+  if (sessionStorage.getItem('ryby:reset')) {
+    sessionStorage.removeItem('ryby:reset');
+    setTimeout(() => toast('Postup smazán. Hezké chytání od začátku!'), 400);
+  }
+} catch {
+  /* soukromý režim */
+}
 engine.setLocation(unlockedLocations(save).includes(save.prefs.location) ? save.prefs.location : 'rybnik');
 applyPrefs();
 engine.start();

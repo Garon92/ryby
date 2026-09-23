@@ -5,12 +5,6 @@ export type Difficulty = 'easy' | 'normal' | 'hard';
 export type GameMode = 'timed' | 'free';
 export type Rng = () => number;
 
-export const DIFFICULTY_LABEL: Record<Difficulty, { name: string; icon: string; hint: string }> = {
-  easy: { name: 'Mrňous', icon: '🐣', hint: 'Ryba se zasekne sama a vlasec nepraskne.' },
-  normal: { name: 'Rybář', icon: '🎣', hint: 'Při záběru ťukni a hlídej napětí vlasce.' },
-  hard: { name: 'Mistr', icon: '🏆', hint: 'Rychlé záběry, silné ryby, pozor na prasknutí.' },
-};
-
 export const MODE_LABEL: Record<GameMode, { name: string; icon: string; hint: string }> = {
   timed: { name: 'Výprava', icon: '⏱️', hint: '3 minuty, sbírej body a hvězdy.' },
   free: { name: 'Volné chytání', icon: '♾️', hint: 'Bez času, v klidu a pohodě.' },
