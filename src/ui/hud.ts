@@ -43,7 +43,7 @@ export class Hud {
     this.scorePill = h('div', { class: 'pill', title: 'Body' }, h('span', { class: 'emo', 'aria-hidden': 'true' }, '🏅'), this.scoreText, h('span', { class: 'g92-sr-only' }, 'bodů'), this.starsEl);
     this.clockIcon = h('span', { class: 'emo', 'aria-hidden': 'true' }, '☀️');
     this.clockText = h('b', null, '7:00');
-    const clockPill = h('div', { class: 'pill', title: 'Denní doba' }, this.clockIcon, this.clockText);
+    const clockPill = h('div', { class: 'pill clock', title: 'Denní doba' }, this.clockIcon, this.clockText);
     this.coinsText = h('b', null, '0');
     this.coinsPill = h('div', { class: 'pill', title: 'Mince' }, h('span', { html: coinHTML, style: 'display:contents' }), this.coinsText, h('span', { class: 'g92-sr-only' }, 'mincí'));
     const left = h('div', { class: 'hud-group' }, this.timerPill, this.scorePill);

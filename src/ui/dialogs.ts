@@ -66,7 +66,7 @@ export function openDaily(save: Save, onClaim: (coins: number) => void): void {
         'div',
         { class: `daily-day${done ? ' is-done' : ''}${isToday && can ? ' is-today' : ''}` },
         h('span', { class: 'emo', 'aria-hidden': 'true', html: done ? '✅' : day === 7 ? '🎁' : coinHTML }),
-        h('span', null, `${day}. den`),
+        h('span', { class: 'lbl' }, `Den ${day}`),
         h('b', null, `+${r}`),
       ),
     );

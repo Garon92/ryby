@@ -1316,6 +1316,12 @@ html[data-scheme='dark'] .fish-card.is-locked img {
   font-size: 22px;
 }
 
+.daily-day .lbl {
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--g92-text-muted);
+}
+
 .daily-day.is-done {
   background: var(--g92-success-soft);
 }
@@ -1742,6 +1748,17 @@ html[data-scheme='dark'] .fod.is-locked .fod__pic img {
 
 .g92-overlay--results .g92-overlay__stat dt {
   letter-spacing: 0.02em;
+}
+
+/* úzké telefony: denní doba je vidět na obloze, pilulku s časem schovat, ať se HUD vejde do řádku */
+@media (max-width: 400px) {
+  .hud .pill.clock {
+    display: none;
+  }
+  .hud-group {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
 }
 
 .fish-card .no {

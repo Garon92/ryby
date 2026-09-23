@@ -484,6 +484,7 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
 // ————————————————————————————————— pauza / konec —————————————————————————————————
 
 let pausing = false;
+let pauseOverlay: ReturnType<typeof showPause> | null = null;
 async function pause(): Promise<void> {
   if (state !== 'play' || pausing) return;
   pausing = true;
@@ -494,7 +495,7 @@ async function pause(): Promise<void> {
   const photoBtn = h('button', { type: 'button', class: 'g92-btn g92-btn--soft g92-btn--lg' }, '📷 Fotka');
   const albumB = h('button', { type: 'button', class: 'g92-btn g92-btn--soft g92-btn--lg' }, '📖 Album');
   const extra = h('div', { class: 'g92-overlay__row', style: 'width:100%' }, albumB, photoBtn);
-  const ov = showPause({
+  const ov = (pauseOverlay = showPause({
     subtitle: s ? `${LOCATION_BY_ID[s.location].icon} ${LOCATION_BY_ID[s.location].name}` : undefined,
     stats: s
       ? [
@@ -506,11 +507,12 @@ async function pause(): Promise<void> {
     menuHref: null,
     menuLabel: 'Ukončit',
     extra,
-  });
+  }));
   photoBtn.addEventListener('click', () => ov.close('photo' as 'resume'));
   albumB.addEventListener('click', () => ov.close('album' as 'resume'));
   const choice = (await ov) as string;
   pausing = false;
+  pauseOverlay = null;
   if (choice === 'photo') return photoMode();
   if (choice === 'album') {
     await openAlbum(save);
@@ -656,7 +658,11 @@ window.addEventListener('keyup', (e) => {
   if (e.key === ' ' || e.key === 'Enter') engine.reelHeld = false;
 });
 
-pauseBtn.addEventListener('click', () => void pause());
+// tlačítko v liště: pauza / pokračovat
+pauseBtn.addEventListener('click', () => {
+  if (pauseOverlay) pauseOverlay.close('resume');
+  else void pause();
+});
 
 // nápověda z lišty: během hry hru pozastaví
 appbar.addEventListener('g92-help', (e) => {
@@ -721,7 +727,8 @@ setTimeout(() => {
   const got = checkAchievements(save);
   if (got.length <= 2) return announceTrophies(got);
   const coins = got.reduce((a, t) => a + t.reward, 0);
-  toast(`Máš ${got.length} nové trofeje! +${coins} mincí – najdeš je v albu.`, { variant: 'accent', icon: UI_ICONS.trophy, duration: 5000 });
+  const word = got.length >= 5 ? 'nových trofejí' : 'nové trofeje';
+  toast(`Máš ${got.length} ${word}! +${coins} mincí – najdeš je v albu.`, { variant: 'accent', icon: UI_ICONS.trophy, duration: 5000 });
   persist();
   startUi?.refresh();
 }, 1200);
