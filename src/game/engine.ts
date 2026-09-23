@@ -677,7 +677,6 @@ export class Engine {
 
   /** Když se dlouho nic neděje, pošli k návnadě nejbližší rybu, která ji má ráda. */
   private summonFish(): void {
-    const w = this.world;
     let best: Fish | null = null;
     let bd = Infinity;
     for (const f of this.fishes) {
@@ -696,7 +695,6 @@ export class Engine {
       this.spawnFish(true);
       this.waitT = BITE[this.difficulty].guaranteeAfter - 2;
     }
-    void w;
   }
 
   private updateFight(dt: number): void {
@@ -806,12 +804,22 @@ export class Engine {
           const side = f.x < this.hookX ? -1 : 1;
           f.targetX = this.hookX + side * fw * 0.46;
           f.targetY = this.hookY - f.heightPx(w) * 0.05;
-          f.steer(dt, 0.9, 0, w);
+          const m0 = f.mouth(w);
+          const far = Math.hypot(m0.x - this.hookX, m0.y - this.hookY);
+          // vzdálená ryba pospíchá, blízká připlouvá opatrně
+          f.steer(dt, clamp(0.9 + far / (260 * w.scale), 0.9, 2.2), 0, w);
           f.dir = side === -1 ? 1 : -1;
           const m = f.mouth(w);
-          if (Math.hypot(m.x - this.hookX, m.y - this.hookY) < 12 * w.scale || f.stateT > 9) {
+          const d = Math.hypot(m.x - this.hookX, m.y - this.hookY);
+          if (d < 12 * w.scale || (f.stateT > 7 && d < 70 * w.scale)) {
             f.state = 'nibble';
             f.stateT = 0;
+          } else if (f.stateT > 14) {
+            // nedoplavala (zasekla se o břeh apod.) – vzdát a zkusit jinou
+            f.state = 'wander';
+            f.spooked = 4;
+            f.pickWanderTarget(w, randomRng);
+            if (this.biteFish === f) this.biteFish = null;
           }
           break;
         }

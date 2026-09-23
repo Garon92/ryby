@@ -14,6 +14,7 @@ import {
   subscribeSettings,
   toast,
   UI_ICONS,
+  vocative,
 } from './kit';
 import { LOCATION_BY_ID } from './data/locations';
 import { SPECIES, type LocationId } from './data/species';
@@ -31,6 +32,7 @@ import { TIMED_SECONDS, type CatchEvent, type Difficulty, type GameMode } from '
 import { persist, resetSave, save } from './store';
 import { openAlbum } from './ui/album';
 import { COIN_SVG } from './ui/icons';
+import { fmtTime } from './ui/common';
 import { showCatchCard, showMiniCatch } from './ui/catchCard';
 import { missionText, openDaily, openMissions } from './ui/dialogs';
 import { Hud } from './ui/hud';
@@ -451,7 +453,8 @@ async function onCatch(f: Fish, perfect: boolean, night: boolean): Promise<void>
   persist();
   reportActivity();
   engine.audio.play(out.newSpecies || f.trophy || f.rainbow ? 'fanfare' : 'catch');
-  speech.speak(out.newSpecies ? `Nový druh! ${f.species.name}` : f.species.name);
+  const name = getSettings().playerName.trim();
+  speech.speak(out.newSpecies ? `${name ? `Výborně, ${vocative(name)}! ` : ''}Nový druh! ${f.species.name}` : f.species.name);
   if (!big) {
     showMiniCatch(stage, f.species, f.sizeCm, s.scoring ? out.points.points : null);
     return;
@@ -497,7 +500,7 @@ async function pause(): Promise<void> {
       ? [
           { label: 'Ryb', value: s.catches.length },
           { label: 'Body', value: s.score },
-          ...(s.mode === 'timed' ? [{ label: 'Zbývá', value: `${Math.floor(s.timeLeft / 60)}:${String(Math.ceil(s.timeLeft % 60) % 60).padStart(2, '0')}` }] : []),
+          ...(s.mode === 'timed' ? [{ label: 'Zbývá', value: fmtTime(s.timeLeft) }] : []),
         ]
       : [],
     menuHref: null,
@@ -713,8 +716,15 @@ new ResizeObserver(() => engine.resize()).observe(stage);
 // ————————————————————————————————— start —————————————————————————————————
 
 ensureMissions(save, Math.random);
-// trofeje za postup z dřívějška (např. po migraci) – oznámit po startu
-setTimeout(() => announceTrophies(checkAchievements(save)), 1200);
+// trofeje za postup z dřívějška (např. po migraci) – oznámit po startu (víc najednou jako jeden souhrn)
+setTimeout(() => {
+  const got = checkAchievements(save);
+  if (got.length <= 2) return announceTrophies(got);
+  const coins = got.reduce((a, t) => a + t.reward, 0);
+  toast(`Máš ${got.length} nové trofeje! +${coins} mincí – najdeš je v albu.`, { variant: 'accent', icon: UI_ICONS.trophy, duration: 5000 });
+  persist();
+  startUi?.refresh();
+}, 1200);
 engine.setLocation(unlockedLocations(save).includes(save.prefs.location) ? save.prefs.location : 'rybnik');
 applyPrefs();
 engine.start();

@@ -1,4 +1,4 @@
-import { h, setHelp, sfx, showStart, UI_ICONS } from '../kit';
+import { getSettings, greeting, h, setHelp, sfx, showStart, UI_ICONS } from '../kit';
 import { LOCATIONS, LOCATION_BY_ID, type LocationDef } from '../data/locations';
 import type { LocationId } from '../data/species';
 import { canClaim } from '../game/logic/daily';
@@ -107,6 +107,8 @@ export function openStart(save: Save, onChoice: (c: StartChoice) => void): { ref
     howTo: HOW_TO,
     keys: KEYS,
     showHowTo: !save.prefs.seenHelp,
+    // se jménem z nastavení kitu přátelský pozdrav („Dobré ráno, Adámku!“)
+    subtitle: getSettings().playerName.trim() ? `${greeting(getSettings().playerName.trim())} Jdeme na ryby?` : undefined,
   });
   setHelp({ title: 'Jak hrát', howTo: HOW_TO_FULL, keys: KEYS });
   const root = p.el;
